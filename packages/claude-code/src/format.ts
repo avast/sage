@@ -23,6 +23,7 @@ const SEPARATOR_WIDTH = 48;
 function appendVerdictDetails(lines: string[], verdict: Verdict): void {
 	lines.push(kv("Severity", verdict.severity.toUpperCase()));
 	if (verdict.artifacts.length > 0) {
+		// biome-ignore lint/style/noNonNullAssertion: length check above guarantees index 0 exists
 		lines.push(kv("Artifact", verdict.artifacts[0]!));
 		for (const a of verdict.artifacts.slice(1)) {
 			lines.push(kv("", a));
