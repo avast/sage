@@ -26,22 +26,59 @@ const managedMarker = readRequiredEnv("SAGE_E2E_MANAGED_MARKER");
 const hookMode = readRequiredEnv("SAGE_E2E_HOOK_MODE");
 const hooksRelativePath = readRequiredEnv("SAGE_E2E_HOOKS_RELATIVE_PATH");
 const hookRunnerPath = readRequiredEnv("SAGE_E2E_HOOK_RUNNER_PATH");
+const resultsFilePath = process.env.SAGE_E2E_RESULTS_FILE?.trim() || undefined;
+const verbose = isVerbose();
 
 const workspacePath = getWorkspacePath();
 const hookConfigPath = path.join(workspacePath, hooksRelativePath);
+const TEST_CASES = [
+	{
+		id: "configure-workspace-scope",
+		name: "configure workspace scope",
+		run: configureWorkspaceScope,
+	},
+	{
+		id: "extension-activates",
+		name: "extension activates",
+		run: verifyExtensionActivation,
+	},
+	{
+		id: "commands-registered",
+		name: "sage commands are registered",
+		run: verifyCommandsRegistered,
+	},
+	{
+		id: "enable-protection-writes-hooks",
+		name: "enable protection writes managed hooks",
+		run: verifyEnableProtection,
+	},
+	{
+		id: "hook-health-command",
+		name: "hook health command runs without error",
+		run: verifyHookHealthCommand,
+	},
+	{
+		id: "dangerous-write-blocked",
+		name: "managed hook blocks dangerous write",
+		run: verifyHookPipelineBlocksThreat,
+	},
+	{
+		id: "disable-protection-removes-hooks",
+		name: "disable protection removes managed hooks",
+		run: verifyDisableProtection,
+	},
+];
 
 async function run() {
 	const failures = [];
+	const results = [];
 	try {
-		await runCase("configure workspace scope", configureWorkspaceScope, failures);
-		await runCase("extension activates", verifyExtensionActivation, failures);
-		await runCase("sage commands are registered", verifyCommandsRegistered, failures);
-		await runCase("enable protection writes managed hooks", verifyEnableProtection, failures);
-		await runCase("hook health command runs without error", verifyHookHealthCommand, failures);
-		await runCase("managed hook blocks dangerous write", verifyHookPipelineBlocksThreat, failures);
-		await runCase("disable protection removes managed hooks", verifyDisableProtection, failures);
+		for (const testCase of TEST_CASES) {
+			await runCase(testCase, failures, results);
+		}
 	} finally {
 		cleanupWorkspaceArtifacts();
+		writeResults(results);
 	}
 
 	if (failures.length > 0) {
@@ -53,14 +90,30 @@ async function run() {
 
 module.exports = { run };
 
-async function runCase(name, work, failures) {
+async function runCase(testCase, failures, results) {
+	const startedAt = Date.now();
 	try {
-		await work();
-		console.log(`[sage-e2e] PASS: ${name}`);
+		await testCase.run();
+		results.push({
+			id: testCase.id,
+			name: testCase.name,
+			status: "pass",
+			durationMs: Date.now() - startedAt,
+		});
+		if (verbose) {
+			console.log(`[sage-e2e] PASS: ${testCase.name}`);
+		}
 	} catch (error) {
 		const details = formatError(error);
-		console.error(`[sage-e2e] FAIL: ${name}\n${details}`);
-		failures.push(`${name}\n${details}`);
+		results.push({
+			id: testCase.id,
+			name: testCase.name,
+			status: "fail",
+			error: details,
+			durationMs: Date.now() - startedAt,
+		});
+		console.error(`[sage-e2e] FAIL: ${testCase.name}\n${details}`);
+		failures.push(`${testCase.name}\n${details}`);
 	}
 }
 
@@ -288,4 +341,35 @@ function formatError(error) {
 		return error.stack || error.message;
 	}
 	return String(error);
+}
+
+function writeResults(results) {
+	if (!resultsFilePath) {
+		return;
+	}
+
+	try {
+		fs.writeFileSync(
+			resultsFilePath,
+			`${JSON.stringify(
+				{
+					host,
+					generatedAt: new Date().toISOString(),
+					cases: results,
+				},
+				null,
+				2,
+			)}\n`,
+			"utf8",
+		);
+	} catch (error) {
+		if (verbose) {
+			console.error(`[sage-e2e] Failed to write case results: ${formatError(error)}`);
+		}
+	}
+}
+
+function isVerbose() {
+	const value = process.env.SAGE_E2E_VERBOSE?.trim().toLowerCase();
+	return value === "1" || value === "true" || value === "yes" || value === "on";
 }

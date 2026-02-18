@@ -17,9 +17,15 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { runTests } from "@vscode/test-electron";
-import { describe, it } from "vitest";
+import { beforeAll, describe, it } from "vitest";
 
 type HostName = "cursor" | "vscode";
+type CaseStatus = "pass" | "fail";
+
+interface E2ECase {
+	id: string;
+	title: string;
+}
 
 interface HostMetadata {
 	label: string;
@@ -35,10 +41,34 @@ interface HostResolution {
 	reason?: string;
 }
 
+interface CaseOutcome {
+	id: string;
+	name: string;
+	status: CaseStatus;
+	error?: string;
+	durationMs?: number;
+}
+
+interface HostRunSummary {
+	orderedOutcomes: CaseOutcome[];
+	caseOutcomes: Map<string, CaseOutcome>;
+	runError?: string;
+}
+
 const EXTENSION_ROOT = path.resolve(__dirname, "..", "..");
 const WORKSPACE_FOLDER = path.resolve(EXTENSION_ROOT, "test-workspace");
 const EXTENSION_TESTS_PATH = path.resolve(__dirname, "e2e-suite", "index.js");
 const HOOK_RUNNER_PATH = path.resolve(EXTENSION_ROOT, "dist", "sage-hook.cjs");
+const E2E_VERBOSE = resolveE2EVerbose();
+const E2E_CASES: readonly E2ECase[] = [
+	{ id: "configure-workspace-scope", title: "configure workspace scope" },
+	{ id: "extension-activates", title: "extension activates" },
+	{ id: "commands-registered", title: "sage commands are registered" },
+	{ id: "enable-protection-writes-hooks", title: "enable protection writes managed hooks" },
+	{ id: "hook-health-command", title: "hook health command runs without error" },
+	{ id: "dangerous-write-blocked", title: "managed hook blocks dangerous write" },
+	{ id: "disable-protection-removes-hooks", title: "disable protection removes managed hooks" },
+];
 
 const HOST_METADATA: Record<HostName, HostMetadata> = {
 	cursor: {
@@ -73,20 +103,48 @@ for (const host of hostsToRun) {
 	const describeHost = canRun ? describe : describe.skip;
 
 	describeHost(`E2E: Sage extension in ${metadata.label}`, { timeout: 240_000 }, () => {
-		it("activates and validates managed hook pipeline", async () => {
-			if (!resolved.executablePath) {
-				return;
+		let hostRunPromise: Promise<HostRunSummary> | undefined;
+
+		beforeAll(() => {
+			if (resolved.executablePath) {
+				hostRunPromise = runHostE2E(host, resolved.executablePath);
 			}
-			await runHostE2E(host, resolved.executablePath);
 		});
+
+		for (const testCase of E2E_CASES) {
+			it(testCase.title, async () => {
+				if (!hostRunPromise) {
+					return;
+				}
+
+				const summary = await hostRunPromise;
+				if (summary.runError && !hasFailedOutcomes(summary)) {
+					throw new Error(
+						`Extension host run failed before reporting case outcomes:\n${summary.runError}`,
+					);
+				}
+
+				const outcome = summary.caseOutcomes.get(testCase.id);
+				if (!outcome) {
+					throw new Error(buildMissingOutcomeMessage(testCase, summary));
+				}
+				if (outcome.status === "fail") {
+					throw new Error(
+						outcome.error ? `${outcome.name}\n${outcome.error}` : `${outcome.name} failed`,
+					);
+				}
+			});
+		}
 	});
 }
 
-async function runHostE2E(host: HostName, executablePath: string): Promise<void> {
+async function runHostE2E(host: HostName, executablePath: string): Promise<HostRunSummary> {
 	const metadata = HOST_METADATA[host];
 	const tempHome = mkdtempSync(path.join(tmpdir(), `sage-${host}-home-`));
+	const resultsFilePath = path.join(tempHome, "sage-e2e-results.json");
 	let extensionDevelopmentPath = EXTENSION_ROOT;
 	let stagedVsCodeExtensionPath: string | undefined;
+	let runError: unknown;
 
 	try {
 		if (host === "vscode") {
@@ -94,29 +152,163 @@ async function runHostE2E(host: HostName, executablePath: string): Promise<void>
 			extensionDevelopmentPath = stagedVsCodeExtensionPath;
 		}
 
-		await runTests({
-			vscodeExecutablePath: executablePath,
-			extensionDevelopmentPath,
-			extensionTestsPath: EXTENSION_TESTS_PATH,
-			launchArgs: [WORKSPACE_FOLDER, "--disable-extensions"],
-			extensionTestsEnv: {
-				SAGE_E2E_HOST: host,
-				SAGE_E2E_EXTENSION_ID: metadata.extensionId,
-				SAGE_E2E_SCOPE_SETTING_KEY: metadata.scopeSettingKey,
-				SAGE_E2E_MANAGED_MARKER: metadata.managedMarker,
-				SAGE_E2E_HOOK_MODE: metadata.hookMode,
-				SAGE_E2E_HOOKS_RELATIVE_PATH: metadata.hooksRelativePath,
-				SAGE_E2E_HOOK_RUNNER_PATH: HOOK_RUNNER_PATH,
-				HOME: tempHome,
-				USERPROFILE: tempHome,
-			},
-		});
+		try {
+			await runTests({
+				vscodeExecutablePath: executablePath,
+				extensionDevelopmentPath,
+				extensionTestsPath: EXTENSION_TESTS_PATH,
+				launchArgs: buildLaunchArgs(),
+				extensionTestsEnv: {
+					SAGE_E2E_HOST: host,
+					SAGE_E2E_EXTENSION_ID: metadata.extensionId,
+					SAGE_E2E_SCOPE_SETTING_KEY: metadata.scopeSettingKey,
+					SAGE_E2E_MANAGED_MARKER: metadata.managedMarker,
+					SAGE_E2E_HOOK_MODE: metadata.hookMode,
+					SAGE_E2E_HOOKS_RELATIVE_PATH: metadata.hooksRelativePath,
+					SAGE_E2E_HOOK_RUNNER_PATH: HOOK_RUNNER_PATH,
+					SAGE_E2E_RESULTS_FILE: resultsFilePath,
+					SAGE_E2E_VERBOSE: E2E_VERBOSE ? "1" : "0",
+					HOME: tempHome,
+					USERPROFILE: tempHome,
+					XDG_CONFIG_HOME: path.join(tempHome, ".config"),
+					VSCODE_LOG_LEVEL: E2E_VERBOSE ? "info" : "error",
+				},
+			});
+		} catch (error) {
+			runError = error;
+		}
+
+		const orderedOutcomes = readCaseOutcomes(resultsFilePath);
+		return {
+			orderedOutcomes,
+			caseOutcomes: new Map(orderedOutcomes.map((outcome) => [outcome.id, outcome])),
+			runError: runError ? formatError(runError) : undefined,
+		};
 	} finally {
 		rmSync(tempHome, { recursive: true, force: true });
 		if (stagedVsCodeExtensionPath) {
 			rmSync(stagedVsCodeExtensionPath, { recursive: true, force: true });
 		}
 	}
+}
+
+function buildLaunchArgs(): string[] {
+	const launchArgs = [
+		WORKSPACE_FOLDER,
+		"--disable-extensions",
+		"--disable-workspace-trust",
+		"--skip-welcome",
+		"--skip-release-notes",
+	];
+
+	if (!E2E_VERBOSE) {
+		launchArgs.push("--log", "off");
+	}
+	if (process.platform === "darwin") {
+		launchArgs.push("--use-mock-keychain");
+	}
+	return launchArgs;
+}
+
+function hasFailedOutcomes(summary: HostRunSummary): boolean {
+	return summary.orderedOutcomes.some((outcome) => outcome.status === "fail");
+}
+
+function buildMissingOutcomeMessage(testCase: E2ECase, summary: HostRunSummary): string {
+	const recorded =
+		summary.orderedOutcomes.length > 0
+			? summary.orderedOutcomes
+					.map((outcome) => `- ${outcome.id} (${outcome.status})`)
+					.join("\n")
+			: "No cases were recorded.";
+	const runErrorSection = summary.runError
+		? `\n\nExtension host error:\n${summary.runError}`
+		: "";
+	return `Missing result for case "${testCase.title}" (${testCase.id}).\n\nRecorded outcomes:\n${recorded}${runErrorSection}`;
+}
+
+function readCaseOutcomes(filePath: string): CaseOutcome[] {
+	if (!existsSync(filePath)) {
+		return [];
+	}
+
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(readFileSync(filePath, "utf8"));
+	} catch {
+		return [];
+	}
+
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+		return [];
+	}
+	const rawCases = (parsed as { cases?: unknown }).cases;
+	if (!Array.isArray(rawCases)) {
+		return [];
+	}
+
+	const outcomes: CaseOutcome[] = [];
+	for (const rawCase of rawCases) {
+		const outcome = parseCaseOutcome(rawCase);
+		if (outcome) {
+			outcomes.push(outcome);
+		}
+	}
+	return outcomes;
+}
+
+function parseCaseOutcome(value: unknown): CaseOutcome | undefined {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		return undefined;
+	}
+
+	const record = value as Record<string, unknown>;
+	const id = typeof record.id === "string" ? record.id : undefined;
+	const name = typeof record.name === "string" ? record.name : undefined;
+	const status =
+		record.status === "pass" || record.status === "fail"
+			? (record.status as CaseStatus)
+			: undefined;
+	if (!id || !name || !status) {
+		return undefined;
+	}
+
+	const error = typeof record.error === "string" ? record.error : undefined;
+	const durationMs = typeof record.durationMs === "number" ? record.durationMs : undefined;
+	return { id, name, status, error, durationMs };
+}
+
+function resolveE2EVerbose(): boolean {
+	const envValue = process.env.SAGE_E2E_VERBOSE?.trim().toLowerCase();
+	if (envValue === "1" || envValue === "true" || envValue === "yes" || envValue === "on") {
+		return true;
+	}
+	if (envValue === "0" || envValue === "false" || envValue === "no" || envValue === "off") {
+		return false;
+	}
+
+	for (let i = 0; i < process.argv.length; i += 1) {
+		const arg = process.argv[i];
+		if (arg === "--reporter" && process.argv[i + 1] === "verbose") {
+			return true;
+		}
+		if (
+			typeof arg === "string" &&
+			arg.startsWith("--reporter=") &&
+			arg.slice("--reporter=".length) === "verbose"
+		) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function formatError(error: unknown): string {
+	if (error instanceof Error) {
+		return error.stack || error.message;
+	}
+	return String(error);
 }
 
 function resolveRequestedHost(): HostName | undefined {
