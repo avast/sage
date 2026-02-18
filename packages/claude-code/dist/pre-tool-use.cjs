@@ -16089,96 +16089,98 @@ var VerdictCache = class {
 };
 
 // ../core/dist/clients/amsi.js
+var import_node_child_process = require("node:child_process");
 var AMSI_RESULT_DETECTED = 32768;
 var AMSI_RESULT_BLOCKED_BY_ADMIN_START = 16384;
 var MAX_SCAN_LENGTH = 1048576;
-var AmsiClient = class {
+var PS_TIMEOUT = 15e3;
+function isWSL() {
+  if (process.platform !== "linux")
+    return false;
+  return !!process.env.WSL_DISTRO_NAME;
+}
+function interpretAmsiResult(amsiResult, content, contentName) {
+  return {
+    content: content.length > 200 ? `${content.slice(0, 200)}...` : content,
+    contentName,
+    amsiResult,
+    isDetected: amsiResult >= AMSI_RESULT_DETECTED,
+    isBlockedByAdmin: amsiResult >= AMSI_RESULT_BLOCKED_BY_ADMIN_START && amsiResult < AMSI_RESULT_DETECTED
+  };
+}
+var KoffiAmsiBackend = class {
   logger;
   context = null;
   session = null;
   available = false;
-  // koffi function references
+  /* biome-ignore lint/suspicious/noExplicitAny: koffi FFI functions have dynamic signatures */
   fnScanBuffer = null;
+  /* biome-ignore lint/suspicious/noExplicitAny: koffi FFI functions have dynamic signatures */
   fnCloseSession = null;
+  /* biome-ignore lint/suspicious/noExplicitAny: koffi FFI functions have dynamic signatures */
   fnUninitialize = null;
-  constructor(logger2 = nullLogger) {
+  constructor(logger2) {
     this.logger = logger2;
   }
   get isAvailable() {
     return this.available;
   }
   async init() {
-    if (process.platform !== "win32") {
-      this.logger.debug("AMSI: skipping, not Windows");
-      return;
-    }
     try {
-      const koffi = await import("koffi");
+      const koffiModule = await import("koffi");
+      const koffi = koffiModule.default ?? koffiModule;
       const lib = koffi.load("amsi.dll");
-      const AmsiInitialize = lib.func("AmsiInitialize", "int32", ["str16", "*"]);
-      const AmsiOpenSession = lib.func("AmsiOpenSession", "int32", ["*", "*"]);
-      this.fnScanBuffer = lib.func("AmsiScanBuffer", "int32", [
-        "*",
-        "*",
-        "uint32",
-        "str16",
-        "*",
-        "*"
-      ]);
-      this.fnCloseSession = lib.func("AmsiCloseSession", "void", ["*", "*"]);
-      this.fnUninitialize = lib.func("AmsiUninitialize", "void", ["*"]);
-      const contextPtr = Buffer.alloc(8);
-      const hr = AmsiInitialize("Sage", contextPtr);
+      const HAMSICONTEXT = koffi.pointer("HAMSICONTEXT", koffi.opaque());
+      const HAMSISESSION = koffi.pointer("HAMSISESSION", koffi.opaque());
+      const AmsiInitialize = lib.func("int32 __stdcall AmsiInitialize(str16 appName, _Out_ HAMSICONTEXT *ctx)");
+      const AmsiOpenSession = lib.func("int32 __stdcall AmsiOpenSession(HAMSICONTEXT ctx, _Out_ HAMSISESSION *session)");
+      this.fnScanBuffer = lib.func("int32 __stdcall AmsiScanBuffer(HAMSICONTEXT ctx, void *buf, uint32 len, str16 contentName, HAMSISESSION session, _Out_ int32 *result)");
+      this.fnCloseSession = lib.func("void __stdcall AmsiCloseSession(HAMSICONTEXT ctx, HAMSISESSION session)");
+      this.fnUninitialize = lib.func("void __stdcall AmsiUninitialize(HAMSICONTEXT ctx)");
+      const ctxOut = [null];
+      const hr = AmsiInitialize("Sage", ctxOut);
       if (hr !== 0) {
-        this.logger.warn("AMSI: AmsiInitialize failed", { hr });
+        this.logger.warn("AMSI: koffi AmsiInitialize failed", { hr });
         return;
       }
-      this.context = contextPtr;
-      const sessionPtr = Buffer.alloc(8);
-      const hr2 = AmsiOpenSession(contextPtr, sessionPtr);
+      this.context = ctxOut[0];
+      const sessOut = [null];
+      const hr2 = AmsiOpenSession(this.context, sessOut);
       if (hr2 !== 0) {
-        this.logger.warn("AMSI: AmsiOpenSession failed", { hr: hr2 });
+        this.logger.warn("AMSI: koffi AmsiOpenSession failed", { hr: hr2 });
         try {
-          this.fnUninitialize(contextPtr);
+          this.fnUninitialize(this.context);
         } catch {
         }
         this.context = null;
         return;
       }
-      this.session = sessionPtr;
+      this.session = sessOut[0];
       this.available = true;
-      this.logger.debug("AMSI: initialized successfully");
+      this.logger.debug("AMSI: koffi backend initialized");
     } catch (e) {
-      this.logger.debug("AMSI: initialization failed", { error: String(e) });
+      this.logger.debug("AMSI: koffi backend init failed", { error: String(e) });
       this.available = false;
     }
   }
-  scanString(content, contentName) {
+  async scanString(content, contentName) {
     if (!this.available || !this.fnScanBuffer || !this.context || !this.session) {
       return null;
     }
     try {
       const truncated = content.length > MAX_SCAN_LENGTH ? content.slice(0, MAX_SCAN_LENGTH) : content;
       const buf = Buffer.from(truncated, "utf-8");
-      const resultBuf = Buffer.alloc(4);
-      const hr = this.fnScanBuffer(this.context, buf, buf.length, contentName, this.session, resultBuf);
+      const resultOut = [0];
+      const hr = this.fnScanBuffer(this.context, buf, buf.length, contentName, this.session, resultOut);
       if (hr !== 0) {
-        this.logger.warn("AMSI: AmsiScanBuffer failed", { hr, contentName });
+        this.logger.warn("AMSI: koffi AmsiScanBuffer failed", { hr, contentName });
         return null;
       }
-      const amsiResult = resultBuf.readInt32LE(0);
-      const isDetected = amsiResult >= AMSI_RESULT_DETECTED;
-      const isBlockedByAdmin = amsiResult >= AMSI_RESULT_BLOCKED_BY_ADMIN_START && amsiResult < AMSI_RESULT_DETECTED;
-      this.logger.debug("AMSI: scan result", { contentName, amsiResult, isDetected, isBlockedByAdmin });
-      return {
-        content: content.length > 200 ? `${content.slice(0, 200)}...` : content,
-        contentName,
-        amsiResult,
-        isDetected,
-        isBlockedByAdmin
-      };
+      const amsiResult = resultOut[0] ?? 0;
+      this.logger.debug("AMSI: koffi scan result", { contentName, amsiResult });
+      return interpretAmsiResult(amsiResult, content, contentName);
     } catch (e) {
-      this.logger.warn("AMSI: scanBuffer failed", { error: String(e), contentName });
+      this.logger.warn("AMSI: koffi scanBuffer failed", { error: String(e), contentName });
       return null;
     }
   }
@@ -16198,6 +16200,261 @@ var AmsiClient = class {
     this.session = null;
     this.context = null;
     this.available = false;
+  }
+};
+var PS_PERSISTENT_SCRIPT = `
+$ErrorActionPreference = 'Stop'
+try {
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+
+public class SageAmsi {
+    [DllImport("amsi.dll", CharSet = CharSet.Unicode)]
+    static extern int AmsiInitialize(string appName, out IntPtr ctx);
+
+    [DllImport("amsi.dll")]
+    static extern int AmsiOpenSession(IntPtr ctx, out IntPtr session);
+
+    [DllImport("amsi.dll", CharSet = CharSet.Unicode)]
+    static extern int AmsiScanBuffer(
+        IntPtr ctx, byte[] buf, uint len,
+        string contentName, IntPtr session, out int result);
+
+    [DllImport("amsi.dll")]
+    static extern void AmsiCloseSession(IntPtr ctx, IntPtr session);
+
+    [DllImport("amsi.dll")]
+    static extern void AmsiUninitialize(IntPtr ctx);
+
+    private static IntPtr _ctx;
+    private static IntPtr _session;
+    private static bool _initialized;
+
+    public static bool Init() {
+        int hr = AmsiInitialize("Sage", out _ctx);
+        if (hr != 0) return false;
+        hr = AmsiOpenSession(_ctx, out _session);
+        if (hr != 0) {
+            AmsiUninitialize(_ctx);
+            return false;
+        }
+        _initialized = true;
+        return true;
+    }
+
+    public static int Scan(string content, string contentName) {
+        if (!_initialized) return -1;
+        byte[] bytes = Encoding.UTF8.GetBytes(content);
+        int result;
+        int hr = AmsiScanBuffer(_ctx, bytes, (uint)bytes.Length,
+                                contentName, _session, out result);
+        if (hr != 0) return -1;
+        return result;
+    }
+
+    public static void Shutdown() {
+        if (!_initialized) return;
+        AmsiCloseSession(_ctx, _session);
+        AmsiUninitialize(_ctx);
+        _initialized = false;
+    }
+}
+'@
+
+    if (-not [SageAmsi]::Init()) {
+        [Console]::Error.Write("AMSI initialization failed")
+        exit 1
+    }
+
+    [Console]::Out.WriteLine("READY")
+    [Console]::Out.Flush()
+
+    while ($null -ne ($line = [Console]::In.ReadLine())) {
+        try {
+            $req = $line | ConvertFrom-Json
+            $content = $req.content
+            $cname = $req.contentName
+            if (-not $cname) { $cname = 'sage:test' }
+            $result = [SageAmsi]::Scan($content, $cname)
+            [Console]::Out.WriteLine($result)
+            [Console]::Out.Flush()
+        } catch {
+            [Console]::Out.WriteLine("-1")
+            [Console]::Out.Flush()
+        }
+    }
+
+    [SageAmsi]::Shutdown()
+} catch {
+    [Console]::Error.Write($_.Exception.Message)
+    exit 1
+}
+`;
+var PowershellAmsiBackend = class {
+  logger;
+  process = null;
+  available = false;
+  stdoutBuffer = "";
+  pendingResponse = null;
+  constructor(logger2) {
+    this.logger = logger2;
+  }
+  get isAvailable() {
+    return this.available;
+  }
+  waitForLine(timeout) {
+    return new Promise((resolve2, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingResponse = null;
+        reject(new Error("timeout"));
+      }, timeout);
+      this.pendingResponse = { resolve: resolve2, reject, timer };
+    });
+  }
+  async init() {
+    try {
+      this.process = (0, import_node_child_process.spawn)("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", PS_PERSISTENT_SCRIPT], {
+        stdio: ["pipe", "pipe", "pipe"],
+        windowsHide: true
+      });
+      this.process.on("error", (err) => {
+        this.logger.debug("AMSI: PowerShell process error", { error: String(err) });
+        this.available = false;
+        if (this.pendingResponse) {
+          const { reject, timer } = this.pendingResponse;
+          this.pendingResponse = null;
+          clearTimeout(timer);
+          reject(err);
+        }
+      });
+      this.process.on("exit", () => {
+        this.available = false;
+        if (this.pendingResponse) {
+          const { reject, timer } = this.pendingResponse;
+          this.pendingResponse = null;
+          clearTimeout(timer);
+          reject(new Error("process exited"));
+        }
+      });
+      this.process.stdout.on("data", (chunk) => {
+        this.stdoutBuffer += chunk.toString();
+        let idx;
+        while ((idx = this.stdoutBuffer.indexOf("\n")) !== -1) {
+          const line = this.stdoutBuffer.slice(0, idx).trim();
+          this.stdoutBuffer = this.stdoutBuffer.slice(idx + 1);
+          if (this.pendingResponse) {
+            const { resolve: resolve2, timer } = this.pendingResponse;
+            this.pendingResponse = null;
+            clearTimeout(timer);
+            resolve2(line);
+          }
+        }
+      });
+      this.process.stdin.on("error", () => {
+      });
+      this.process.stderr.on("data", (chunk) => {
+        this.logger.debug("AMSI: PowerShell stderr", {
+          data: chunk.toString().slice(0, 200)
+        });
+      });
+      const readyLine = await this.waitForLine(PS_TIMEOUT);
+      if (readyLine === "READY") {
+        this.available = true;
+        this.logger.debug("AMSI: PowerShell persistent backend initialized");
+      } else {
+        this.logger.debug("AMSI: PowerShell unexpected ready signal", { readyLine });
+        this.close();
+      }
+    } catch (e) {
+      this.logger.debug("AMSI: PowerShell persistent backend init failed", {
+        error: String(e)
+      });
+      this.close();
+    }
+  }
+  async scanString(content, contentName) {
+    if (!this.available || !this.process)
+      return null;
+    try {
+      const truncated = content.length > MAX_SCAN_LENGTH ? content.slice(0, MAX_SCAN_LENGTH) : content;
+      const req = JSON.stringify({ content: truncated, contentName });
+      this.process.stdin.write(req + "\n");
+      const line = await this.waitForLine(PS_TIMEOUT);
+      const amsiResult = parseInt(line, 10);
+      if (Number.isNaN(amsiResult) || amsiResult < 0) {
+        this.logger.warn("AMSI: PowerShell scan returned invalid result", {
+          stdout: line.slice(0, 100),
+          contentName
+        });
+        return null;
+      }
+      this.logger.debug("AMSI: PowerShell scan result", { contentName, amsiResult });
+      return interpretAmsiResult(amsiResult, content, contentName);
+    } catch (e) {
+      this.logger.warn("AMSI: PowerShell scan failed", { error: String(e), contentName });
+      return null;
+    }
+  }
+  close() {
+    if (this.process) {
+      try {
+        this.process.stdin.end();
+      } catch {
+      }
+      try {
+        this.process.kill();
+      } catch {
+      }
+      this.process = null;
+    }
+    if (this.pendingResponse) {
+      const { reject, timer } = this.pendingResponse;
+      this.pendingResponse = null;
+      clearTimeout(timer);
+      reject(new Error("closed"));
+    }
+    this.available = false;
+  }
+};
+var AmsiClient = class {
+  logger;
+  backend = null;
+  constructor(logger2 = nullLogger) {
+    this.logger = logger2;
+  }
+  get isAvailable() {
+    return this.backend?.isAvailable ?? false;
+  }
+  async init() {
+    const wsl = isWSL();
+    if (process.platform !== "win32" && !wsl) {
+      this.logger.debug("AMSI: skipping, not Windows");
+      return;
+    }
+    if (!wsl) {
+      const koffi = new KoffiAmsiBackend(this.logger);
+      await koffi.init();
+      if (koffi.isAvailable) {
+        this.backend = koffi;
+        return;
+      }
+    }
+    const ps = new PowershellAmsiBackend(this.logger);
+    await ps.init();
+    if (ps.isAvailable) {
+      this.backend = ps;
+      return;
+    }
+    this.logger.debug("AMSI: no backend available");
+  }
+  async scanString(content, contentName) {
+    return await this.backend?.scanString(content, contentName) ?? null;
+  }
+  close() {
+    this.backend?.close();
+    this.backend = null;
   }
 };
 
@@ -17739,7 +17996,7 @@ async function evaluateToolCall(request, context) {
           }
         }
         for (const scan of scans) {
-          const result = amsiClient.scanString(scan.content, scan.name);
+          const result = await amsiClient.scanString(scan.content, scan.name);
           if (result) {
             amsiCheckResults.push(result);
           }

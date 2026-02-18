@@ -229,7 +229,7 @@ export async function evaluateToolCall(
 				}
 
 				for (const scan of scans) {
-					const result = amsiClient.scanString(scan.content, scan.name);
+					const result = await amsiClient.scanString(scan.content, scan.name);
 					if (result) {
 						amsiCheckResults.push(result);
 					}
