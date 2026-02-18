@@ -24,7 +24,7 @@ vi.mock("@sage/core", async (importOriginal) => {
 			logging: { enabled: false, log_clean: false, path: "/dev/null" },
 			sensitivity: "balanced",
 		}),
-		loadAllowlist: vi.fn().mockResolvedValue({ urls: {}, commands: {} }),
+		loadAllowlist: vi.fn().mockResolvedValue({ urls: {}, commands: {}, filePaths: {} }),
 		isAllowlisted: vi.fn().mockReturnValue(false),
 		loadThreats: vi.fn().mockResolvedValue([]),
 		loadTrustedDomains: vi.fn().mockResolvedValue([]),

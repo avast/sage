@@ -15,6 +15,7 @@ import {
 	runSessionStartScan,
 } from "@sage/core";
 import pino from "pino";
+import { pruneStaleSessionFiles } from "./approval-tracker.js";
 import { formatStartupClean, formatThreatBanner } from "./format.js";
 
 const logger: Logger = pino({ level: "warn" }, pino.destination(2));
@@ -43,6 +44,8 @@ function getPluginManifest(pluginRoot: string): { name: string | null; version: 
 }
 
 async function main(): Promise<void> {
+	await pruneStaleSessionFiles(logger);
+
 	const pluginRoot = getPluginRoot();
 	const threatsDir = join(pluginRoot, "threats");
 	const allowlistsDir = join(pluginRoot, "allowlists");

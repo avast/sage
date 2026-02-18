@@ -13,6 +13,19 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|WebFetch|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/packages/claude-code/dist/post-tool-use.cjs\"",
+            "timeout": 5,
+            "statusMessage": "Sage: Recording approval..."
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [

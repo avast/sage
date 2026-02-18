@@ -3,10 +3,13 @@
 // Allowlist
 export {
 	addCommand,
+	addFilePath,
 	addUrl,
+	emptyAllowlist,
 	isAllowlisted,
 	loadAllowlist,
 	removeCommand,
+	removeFilePath,
 	removeUrl,
 	saveAllowlist,
 } from "./allowlist.js";
@@ -41,7 +44,7 @@ export {
 	extractFromWrite,
 	extractUrls,
 } from "./extractors.js";
-export { getFileContent } from "./file-utils.js";
+export { atomicWriteJson, getFileContent } from "./file-utils.js";
 // Format (shared alert formatting)
 export {
 	formatStartupClean,
@@ -141,7 +144,7 @@ export {
 	VerdictSeveritySchema,
 } from "./types.js";
 // URL utilities
-export { hashCommand, normalizeUrl } from "./url-utils.js";
+export { hashCommand, normalizeFilePath, normalizeUrl } from "./url-utils.js";
 // Version check
 export type { VersionCheckResult } from "./version-check.js";
 export { checkForUpdate, isNewerVersion } from "./version-check.js";

@@ -94,3 +94,7 @@ This is a **multi-platform plugin** with three connectors and a shared core:
 - URL check works without API key for basic malware/phishing detection
 - Standalone binary via Node.js SEA for distribution (no runtime deps)
 - Naming: YAML/JSON data uses `snake_case` (`threat_id`, `source_file`); TypeScript interfaces use `camelCase` (`threatId`, `sourceFile`). Conversion functions bridge the two at serialization boundaries.
+
+## Pre-PR Checklist
+
+Before creating a pull request, run the `code-simplifier` subagent on all changed files to review for clarity, consistency, and maintainability improvements. Apply any suggested changes before opening the PR.

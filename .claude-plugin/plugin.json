@@ -13,5 +13,11 @@
     "protection",
     "url-reputation"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "mcpServers": {
+    "sage": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/packages/claude-code/dist/mcp-server.cjs"]
+    }
+  }
 }

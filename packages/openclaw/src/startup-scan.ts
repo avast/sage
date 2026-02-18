@@ -5,8 +5,10 @@
  */
 
 import {
+	checkForUpdate,
 	computeConfigHash,
 	formatThreatBanner,
+	formatUpdateNotice,
 	fromCachedFinding,
 	getCached,
 	type Logger,
@@ -33,14 +35,20 @@ const SAGE_PLUGIN_ID = "sage";
  */
 async function runScan(logger: Logger, context: string): Promise<string | null> {
 	const { threatsDir, allowlistsDir } = getBundledDataDirs();
+	const version = getSageVersion();
 	logger.info(`Sage plugin scan started (${context})`, { threatsDir, allowlistsDir });
 
-	const threats = await loadThreats(threatsDir, logger);
-	const trustedDomains = await loadTrustedDomains(allowlistsDir, logger);
+	const [threats, trustedDomains, versionCheck] = await Promise.all([
+		loadThreats(threatsDir, logger),
+		loadTrustedDomains(allowlistsDir, logger),
+		checkForUpdate(version, logger),
+	]);
+
+	const updateNotice = versionCheck?.updateAvailable ? formatUpdateNotice(versionCheck) : null;
 
 	if (threats.length === 0) {
 		logger.warn(`Sage plugin scan (${context}): no threats loaded, skipping`);
-		return null;
+		return updateNotice;
 	}
 	logger.info(`Sage plugin scan (${context}): loaded ${threats.length} threat definitions`);
 
@@ -51,7 +59,7 @@ async function runScan(logger: Logger, context: string): Promise<string | null> 
 
 	if (plugins.length === 0) {
 		logger.warn(`Sage plugin scan (${context}): no plugins to scan after filtering`);
-		return null;
+		return updateNotice;
 	}
 	logger.info(`Sage plugin scan (${context}): ${plugins.length} plugin(s) to scan`, {
 		keys: plugins.map((p) => p.key),
@@ -124,15 +132,14 @@ async function runScan(logger: Logger, context: string): Promise<string | null> 
 	}
 
 	if (resultsWithFindings.length > 0) {
-		const version = getSageVersion();
-		const banner = formatThreatBanner(version, resultsWithFindings);
+		const banner = formatThreatBanner(version, resultsWithFindings, versionCheck);
 		logger.warn(`Sage: threat findings detected`, {
 			plugins: resultsWithFindings.map((r) => r.plugin.key),
 		});
 		return banner;
 	}
 
-	return null;
+	return updateNotice;
 }
 
 function createScanHandler(
