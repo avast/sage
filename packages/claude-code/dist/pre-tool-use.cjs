@@ -15881,17 +15881,24 @@ async function loadAllowlist(config, logger2 = nullLogger) {
 }
 function isAllowlisted(allowlist, artifacts) {
   for (const artifact of artifacts) {
-    if (artifact.type === "url" && normalizeUrl(artifact.value) in allowlist.urls) {
+    if (artifact.type !== "command") {
+      continue;
+    }
+    const cmdHash = hashCommand(artifact.value);
+    if (cmdHash in allowlist.commands) {
       return true;
     }
-    if (artifact.type === "command") {
-      const cmdHash = hashCommand(artifact.value);
-      if (cmdHash in allowlist.commands)
-        return true;
+  }
+  for (const artifact of artifacts) {
+    if (artifact.type !== "file_path") {
+      continue;
     }
-    if (artifact.type === "file_path" && normalizeFilePath(artifact.value) in allowlist.filePaths) {
+    if (normalizeFilePath(artifact.value) in allowlist.filePaths) {
       return true;
     }
+  }
+  if (artifacts.length > 0 && artifacts.every((artifact) => artifact.type === "url")) {
+    return artifacts.every((artifact) => normalizeUrl(artifact.value) in allowlist.urls);
   }
   return false;
 }
@@ -16840,14 +16847,17 @@ var HeuristicsEngine = class {
       return false;
     if (!TRUSTED_DOMAIN_SUPPRESSIBLE.has(match.threat.id))
       return false;
-    const urls = extractUrls(match.artifact);
+    const urls = extractUrls(match.matchValue);
+    if (urls.length === 0)
+      return false;
     for (const url of urls) {
       const domain = extractDomain(url);
-      if (domain && isTrustedDomain(domain, this.trustedDomains)) {
-        return true;
-      }
+      if (!domain)
+        return false;
+      if (!isTrustedDomain(domain, this.trustedDomains))
+        return false;
     }
-    return false;
+    return true;
   }
   match(artifacts) {
     const matches = [];
@@ -17585,17 +17595,32 @@ async function evaluateToolCall(request, context) {
   if (cache) {
     try {
       for (const result of urlCheckResults) {
-        const isMalicious = result.isMalicious;
-        const reasons = isMalicious ? [
-          `URL check: malicious (${result.findings.map((finding) => `${finding.severityName}/${finding.typeName}`).join(", ")})`
-        ] : verdict.reasons;
-        const cachedVerdict = {
-          verdict: isMalicious ? "deny" : verdict.decision,
-          severity: isMalicious ? "critical" : verdict.severity,
-          reasons,
-          source: "url_check"
-        };
-        cache.putUrl(result.url, cachedVerdict, isMalicious);
+        let cachedVerdict;
+        if (result.isMalicious) {
+          cachedVerdict = {
+            verdict: "deny",
+            severity: "critical",
+            reasons: [
+              `URL check: malicious (${result.findings.map((finding) => `${finding.severityName}/${finding.typeName}`).join(", ")})`
+            ],
+            source: "url_check"
+          };
+        } else if (result.flags.length > 0) {
+          cachedVerdict = {
+            verdict: "ask",
+            severity: "warning",
+            reasons: [`URL check: suspicious (${result.flags.join(", ")})`],
+            source: "url_check"
+          };
+        } else {
+          cachedVerdict = {
+            verdict: "allow",
+            severity: "info",
+            reasons: [],
+            source: "url_check"
+          };
+        }
+        cache.putUrl(result.url, cachedVerdict, result.isMalicious);
       }
       await cache.save();
     } catch {

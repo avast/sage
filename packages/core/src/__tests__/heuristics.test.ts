@@ -62,7 +62,7 @@ describe("HeuristicsEngine", () => {
 		expect(engine.match(artifacts)).toHaveLength(0);
 	});
 
-	it("ATK-02: unrelated trusted URL in same command does not suppress untrusted pipe-to-shell match", () => {
+	it("does not suppress an untrusted pipe-to-shell match when a trusted URL appears elsewhere", () => {
 		const threat = makeThreat({
 			id: "CLT-CMD-001",
 			pattern: "curl.*\\|.*bash",
@@ -81,7 +81,7 @@ describe("HeuristicsEngine", () => {
 		expect(matches[0]?.artifact).toContain("evil.example");
 	});
 
-	it("ATK-02: trusted and untrusted pipe-to-shell in one command still flags untrusted execution", () => {
+	it("does not suppress when trusted and untrusted pipe-to-shell appear in one command", () => {
 		const threat = makeThreat({
 			id: "CLT-CMD-001",
 			pattern: "curl.*\\|.*bash",

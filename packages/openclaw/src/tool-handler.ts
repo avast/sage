@@ -199,19 +199,32 @@ export function createToolCallHandler(
 			if (cache) {
 				try {
 					for (const result of urlCheckResults) {
-						const isMalicious = result.isMalicious;
-						const reasons = isMalicious
-							? [
+						let cv: CachedVerdict;
+						if (result.isMalicious) {
+							cv = {
+								verdict: "deny",
+								severity: "critical",
+								reasons: [
 									`URL check: malicious (${result.findings.map((f) => `${f.severityName}/${f.typeName}`).join(", ")})`,
-								]
-							: verdict.reasons;
-						const cv: CachedVerdict = {
-							verdict: isMalicious ? "deny" : verdict.decision,
-							severity: isMalicious ? "critical" : verdict.severity,
-							reasons,
-							source: "url_check",
-						};
-						cache.putUrl(result.url, cv, isMalicious);
+								],
+								source: "url_check",
+							};
+						} else if (result.flags.length > 0) {
+							cv = {
+								verdict: "ask",
+								severity: "warning",
+								reasons: [`URL check: suspicious (${result.flags.join(", ")})`],
+								source: "url_check",
+							};
+						} else {
+							cv = {
+								verdict: "allow",
+								severity: "info",
+								reasons: [],
+								source: "url_check",
+							};
+						}
+						cache.putUrl(result.url, cv, result.isMalicious);
 					}
 					await cache.save();
 				} catch {

@@ -227,21 +227,34 @@ export async function evaluateToolCall(
 	if (cache) {
 		try {
 			for (const result of urlCheckResults) {
-				const isMalicious = result.isMalicious;
-				const reasons = isMalicious
-					? [
+				let cachedVerdict: CachedVerdict;
+				if (result.isMalicious) {
+					cachedVerdict = {
+						verdict: "deny",
+						severity: "critical",
+						reasons: [
 							`URL check: malicious (${result.findings
 								.map((finding) => `${finding.severityName}/${finding.typeName}`)
 								.join(", ")})`,
-						]
-					: verdict.reasons;
-				const cachedVerdict: CachedVerdict = {
-					verdict: isMalicious ? "deny" : verdict.decision,
-					severity: isMalicious ? "critical" : verdict.severity,
-					reasons,
-					source: "url_check",
-				};
-				cache.putUrl(result.url, cachedVerdict, isMalicious);
+						],
+						source: "url_check",
+					};
+				} else if (result.flags.length > 0) {
+					cachedVerdict = {
+						verdict: "ask",
+						severity: "warning",
+						reasons: [`URL check: suspicious (${result.flags.join(", ")})`],
+						source: "url_check",
+					};
+				} else {
+					cachedVerdict = {
+						verdict: "allow",
+						severity: "info",
+						reasons: [],
+						source: "url_check",
+					};
+				}
+				cache.putUrl(result.url, cachedVerdict, result.isMalicious);
 			}
 			await cache.save();
 		} catch {

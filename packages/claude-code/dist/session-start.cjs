@@ -16196,14 +16196,17 @@ var HeuristicsEngine = class {
       return false;
     if (!TRUSTED_DOMAIN_SUPPRESSIBLE.has(match.threat.id))
       return false;
-    const urls = extractUrls(match.artifact);
+    const urls = extractUrls(match.matchValue);
+    if (urls.length === 0)
+      return false;
     for (const url of urls) {
       const domain = extractDomain(url);
-      if (domain && isTrustedDomain(domain, this.trustedDomains)) {
-        return true;
-      }
+      if (!domain)
+        return false;
+      if (!isTrustedDomain(domain, this.trustedDomains))
+        return false;
     }
-    return false;
+    return true;
   }
   match(artifacts) {
     const matches = [];

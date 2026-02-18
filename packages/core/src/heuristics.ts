@@ -39,14 +39,18 @@ export class HeuristicsEngine {
 		if (this.trustedDomains.length === 0) return false;
 		if (!TRUSTED_DOMAIN_SUPPRESSIBLE.has(match.threat.id)) return false;
 
-		const urls = extractUrls(match.artifact);
+		// Suppress only when the *matched* substring exclusively references trusted domains.
+		// This prevents a trusted-domain "decoy" from suppressing a match that also contains
+		// untrusted URLs elsewhere in the same command artifact.
+		const urls = extractUrls(match.matchValue);
+		if (urls.length === 0) return false;
+
 		for (const url of urls) {
 			const domain = extractDomain(url);
-			if (domain && isTrustedDomain(domain, this.trustedDomains)) {
-				return true;
-			}
+			if (!domain) return false;
+			if (!isTrustedDomain(domain, this.trustedDomains)) return false;
 		}
-		return false;
+		return true;
 	}
 
 	match(artifacts: Artifact[]): HeuristicMatch[] {

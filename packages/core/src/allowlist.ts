@@ -131,17 +131,30 @@ export async function saveAllowlist(
 
 export function isAllowlisted(allowlist: Allowlist, artifacts: Artifact[]): boolean {
 	for (const artifact of artifacts) {
-		if (artifact.type === "url" && normalizeUrl(artifact.value) in allowlist.urls) {
-			return true;
+		if (artifact.type !== "command") {
+			continue;
 		}
-		if (artifact.type === "command") {
-			const cmdHash = hashCommand(artifact.value);
-			if (cmdHash in allowlist.commands) return true;
-		}
-		if (artifact.type === "file_path" && normalizeFilePath(artifact.value) in allowlist.filePaths) {
+		const cmdHash = hashCommand(artifact.value);
+		if (cmdHash in allowlist.commands) {
 			return true;
 		}
 	}
+
+	for (const artifact of artifacts) {
+		if (artifact.type !== "file_path") {
+			continue;
+		}
+		if (normalizeFilePath(artifact.value) in allowlist.filePaths) {
+			return true;
+		}
+	}
+
+	// URL allowlist entries only short-circuit when every extracted artifact is a URL.
+	// This prevents mixing a benign allowlisted URL with unrelated dangerous artifacts.
+	if (artifacts.length > 0 && artifacts.every((artifact) => artifact.type === "url")) {
+		return artifacts.every((artifact) => normalizeUrl(artifact.value) in allowlist.urls);
+	}
+
 	return false;
 }
 
