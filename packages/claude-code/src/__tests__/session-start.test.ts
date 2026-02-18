@@ -1,4 +1,4 @@
-import type { PluginFinding, PluginInfo, PluginScanResult } from "@sage/core";
+import type { PluginFinding, PluginInfo, PluginScanResult, VersionCheckResult } from "@sage/core";
 import { describe, expect, it } from "vitest";
 import { formatStartupClean, formatThreatBanner } from "../format.js";
 import { formatFindings } from "../session-start.js";
@@ -92,5 +92,17 @@ describe("visual formatters integration", () => {
 		expect(msg).toContain("Threat Detected");
 		expect(msg).toContain("evil-plugin@marketplace");
 		expect(msg).toContain("━");
+	});
+
+	it("formatStartupClean includes update notice when available", () => {
+		const vc: VersionCheckResult = {
+			currentVersion: "0.3.1",
+			latestVersion: "0.5.0",
+			updateAvailable: true,
+		};
+		const msg = formatStartupClean("0.3.1", vc);
+		expect(msg).toMatch(/No threats found/);
+		expect(msg).toContain("Update available");
+		expect(msg).toContain("v0.5.0");
 	});
 });

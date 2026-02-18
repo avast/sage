@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 
 const DIST_DIR = resolve(__dirname, "..", "..", "dist");
 const PRE_TOOL_USE = resolve(DIST_DIR, "pre-tool-use.cjs");
+const POST_TOOL_USE = resolve(DIST_DIR, "post-tool-use.cjs");
 const SESSION_START = resolve(DIST_DIR, "session-start.cjs");
 
 function runHook(
@@ -253,6 +254,48 @@ describe("PreToolUse hook integration", () => {
 		});
 		expect(code).toBe(0);
 		expect(parseResponse(stdout)).toEqual({});
+	});
+});
+
+describe("PostToolUse hook integration", () => {
+	it("returns {} for no pending approval", async () => {
+		const { stdout, code } = await runHook(POST_TOOL_USE, {
+			tool_use_id: "toolu_nonexistent",
+			tool_name: "Bash",
+			tool_input: { command: "echo hi" },
+		});
+		expect(code).toBe(0);
+		expect(parseResponse(stdout)).toEqual({});
+	});
+
+	it("returns {} on empty stdin", async () => {
+		const { stdout, code } = await runHook(POST_TOOL_USE, "");
+		expect(code).toBe(0);
+		expect(parseResponse(stdout)).toEqual({});
+	});
+
+	it("returns {} on invalid JSON stdin", async () => {
+		const { stdout, code } = await runHook(POST_TOOL_USE, "not json");
+		expect(code).toBe(0);
+		expect(parseResponse(stdout)).toEqual({});
+	});
+
+	it("returns {} when tool_use_id is missing", async () => {
+		const { stdout, code } = await runHook(POST_TOOL_USE, {
+			tool_name: "Bash",
+			tool_input: { command: "echo hi" },
+		});
+		expect(code).toBe(0);
+		expect(parseResponse(stdout)).toEqual({});
+	});
+
+	it("always exits 0", async () => {
+		const { code: code1 } = await runHook(POST_TOOL_USE, "");
+		const { code: code2 } = await runHook(POST_TOOL_USE, "garbage");
+		const { code: code3 } = await runHook(POST_TOOL_USE, { tool_use_id: "x" });
+		expect(code1).toBe(0);
+		expect(code2).toBe(0);
+		expect(code3).toBe(0);
 	});
 });
 

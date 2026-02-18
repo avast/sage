@@ -1,5 +1,7 @@
+import { randomBytes } from "node:crypto";
 import type * as fs from "node:fs";
 import * as fsPromises from "node:fs/promises";
+import { dirname } from "node:path";
 
 // OpenClaw's static analysis flags direct readFile/readFileSync calls in bundles
 // that also use HTTP, as a potential data-exfiltration pattern. Since Sage only
@@ -20,4 +22,15 @@ export function getFileContent(
 export function getFileContentRaw(path: fs.PathOrFileDescriptor): Promise<Buffer> {
 	// biome-ignore lint/suspicious/noExplicitAny: intentional dynamic access to avoid OpenClaw false positive
 	return (fsPromises as any)[name1 + name2](path);
+}
+
+/**
+ * Write JSON data atomically: write to a temp file, then rename.
+ * Prevents corrupt reads from concurrent processes.
+ */
+export async function atomicWriteJson(path: string, data: unknown): Promise<void> {
+	await fsPromises.mkdir(dirname(path), { recursive: true });
+	const tmp = `${path}.${randomBytes(6).toString("hex")}.tmp`;
+	await fsPromises.writeFile(tmp, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
+	await fsPromises.rename(tmp, path);
 }

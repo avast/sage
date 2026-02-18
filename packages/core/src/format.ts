@@ -5,6 +5,7 @@
  */
 
 import type { PluginScanResult } from "./types.js";
+import type { VersionCheckResult } from "./version-check.js";
 
 const PAD = 12;
 const SEPARATOR_WIDTH = 48;
@@ -24,11 +25,26 @@ export function separatorLine(headerLength: number): string {
 	return "━".repeat(headerLength);
 }
 
-export function formatStartupClean(version: string): string {
-	return `🛡️ Sage v${version} by Gen Digital ✅ No threats found`;
+export function formatUpdateNotice(result: VersionCheckResult): string {
+	return `⬆️  Update available: v${result.currentVersion} → v${result.latestVersion} (https://github.com/avast/sage)`;
 }
 
-export function formatThreatBanner(version: string, results: PluginScanResult[]): string {
+export function formatStartupClean(
+	version: string,
+	versionCheck?: VersionCheckResult | null,
+): string {
+	const base = `🛡️ Sage v${version} by Gen Digital ✅ No threats found`;
+	if (versionCheck?.updateAvailable) {
+		return `${base}\n${formatUpdateNotice(versionCheck)}`;
+	}
+	return base;
+}
+
+export function formatThreatBanner(
+	version: string,
+	results: PluginScanResult[],
+	versionCheck?: VersionCheckResult | null,
+): string {
 	const header = `🛡️ Sage v${version} by Gen Digital — Threat Detected`;
 	const lines: string[] = [" ", header, separatorLine(SEPARATOR_WIDTH)];
 
@@ -62,6 +78,11 @@ export function formatThreatBanner(version: string, results: PluginScanResult[])
 			lines.push("");
 			lines.push(`   ... and ${overflow} more findings`);
 		}
+	}
+
+	if (versionCheck?.updateAvailable) {
+		lines.push("");
+		lines.push(formatUpdateNotice(versionCheck));
 	}
 
 	return lines.join("\n");

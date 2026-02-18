@@ -33,7 +33,8 @@ Sage reads configuration from `~/.sage/config.json`. All fields are optional - d
     "log_clean": false,
     "path": "~/.sage/audit.jsonl"
   },
-  "sensitivity": "balanced"
+  "sensitivity": "balanced",
+  "disabled_threats": []
 }
 ```
 
@@ -93,6 +94,18 @@ The allowlist stores user overrides for false positives. When Sage returns an `a
 
 One of `"paranoid"`, `"balanced"`, or `"relaxed"`. Default: `"balanced"`. See [How It Works](how-it-works.md#sensitivity-presets).
 
+### `disabled_threats`
+
+Array of threat IDs to skip during heuristic matching. Default: `[]`.
+
+Use this to permanently suppress specific rules that don't apply to your workflow. Threat IDs are listed in the YAML files under `threats/` (e.g. `CLT-CMD-001`).
+
+```json
+{
+  "disabled_threats": ["CLT-CMD-001", "CLT-FILE-003"]
+}
+```
+
 ## Files on Disk
 
 | Path | Purpose |
@@ -101,3 +114,5 @@ One of `"paranoid"`, `"balanced"`, or `"relaxed"`. Default: `"balanced"`. See [H
 | `~/.sage/cache.json` | Verdict cache |
 | `~/.sage/allowlist.json` | User allowlist |
 | `~/.sage/audit.jsonl` | Audit log |
+| `~/.sage/pending-approvals.json` | Pending approval state (transient, managed by PreToolUse hook) |
+| `~/.sage/consumed-approvals.json` | Consumed approvals for MCP allowlist flow (10-min TTL entries) |

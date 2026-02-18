@@ -1,4 +1,10 @@
-import type { PluginFinding, PluginInfo, PluginScanResult, Verdict } from "@sage/core";
+import type {
+	PluginFinding,
+	PluginInfo,
+	PluginScanResult,
+	Verdict,
+	VersionCheckResult,
+} from "@sage/core";
 import { describe, expect, it } from "vitest";
 import {
 	formatBlockReason,
@@ -66,6 +72,35 @@ describe("formatStartupClean", () => {
 		expect(msg).toContain("No threats found");
 		expect(msg).toContain("🛡️");
 		expect(msg).toContain("✅");
+	});
+
+	it("appends update notice when update is available", () => {
+		const vc: VersionCheckResult = {
+			currentVersion: "0.4.0",
+			latestVersion: "0.5.0",
+			updateAvailable: true,
+		};
+		const msg = formatStartupClean("0.4.0", vc);
+		expect(msg).toContain("No threats found");
+		expect(msg).toContain("Update available");
+		expect(msg).toContain("v0.4.0");
+		expect(msg).toContain("v0.5.0");
+		expect(msg).toContain("github.com/avast/sage");
+	});
+
+	it("does not append update notice when up to date", () => {
+		const vc: VersionCheckResult = {
+			currentVersion: "0.4.0",
+			latestVersion: "0.4.0",
+			updateAvailable: false,
+		};
+		const msg = formatStartupClean("0.4.0", vc);
+		expect(msg).not.toContain("Update available");
+	});
+
+	it("does not append update notice when version check is null", () => {
+		const msg = formatStartupClean("0.4.0", null);
+		expect(msg).not.toContain("Update available");
 	});
 });
 
@@ -139,6 +174,36 @@ describe("formatThreatBanner", () => {
 		const result: PluginScanResult = { plugin: makePlugin(), findings };
 		const msg = formatThreatBanner("0.3.1", [result]);
 		expect(msg).toContain("... and 3 more");
+	});
+
+	it("appends update notice when update is available", () => {
+		const result: PluginScanResult = {
+			plugin: makePlugin(),
+			findings: [makeFinding({ severity: "critical" })],
+		};
+		const vc: VersionCheckResult = {
+			currentVersion: "0.4.0",
+			latestVersion: "0.5.0",
+			updateAvailable: true,
+		};
+		const msg = formatThreatBanner("0.4.0", [result], vc);
+		expect(msg).toContain("Threat Detected");
+		expect(msg).toContain("Update available");
+		expect(msg).toContain("v0.5.0");
+	});
+
+	it("does not append update notice when up to date", () => {
+		const result: PluginScanResult = {
+			plugin: makePlugin(),
+			findings: [makeFinding({ severity: "critical" })],
+		};
+		const vc: VersionCheckResult = {
+			currentVersion: "0.4.0",
+			latestVersion: "0.4.0",
+			updateAvailable: false,
+		};
+		const msg = formatThreatBanner("0.4.0", [result], vc);
+		expect(msg).not.toContain("Update available");
 	});
 });
 

@@ -16,6 +16,13 @@ import {
 // Re-export shared formatting so existing callers are unaffected
 export { formatStartupClean, formatThreatBanner, severityEmoji };
 
+export function artifactTypeLabel(type: string): string {
+	if (type === "url") return "URL";
+	if (type === "command") return "command";
+	if (type === "file_path") return "file path";
+	return type;
+}
+
 const PAD = 12;
 const SEPARATOR_WIDTH = 48;
 

@@ -1,7 +1,13 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { ConfigSchema, getRecentEntries, loadConfig, resolvePath } from "@sage/core";
+import {
+	ConfigSchema,
+	checkForUpdate,
+	getRecentEntries,
+	loadConfig,
+	resolvePath,
+} from "@sage/core";
 import * as vscode from "vscode";
 
 import type {
@@ -26,6 +32,21 @@ export function activateManagedHooksExtension(
 	context: vscode.ExtensionContext,
 	target: ExtensionTarget,
 ): void {
+	const version = (context.extension.packageJSON as Record<string, unknown>).version as string;
+	if (version) {
+		checkForUpdate(version)
+			.then((result) => {
+				if (result?.updateAvailable) {
+					void vscode.window.showInformationMessage(
+						`Sage: Update available v${result.currentVersion} → v${result.latestVersion} (https://github.com/avast/sage)`,
+					);
+				}
+			})
+			.catch(() => {
+				// Fail-open: never block extension activation
+			});
+	}
+
 	context.subscriptions.push(
 		vscode.commands.registerCommand("sage.enableProtection", async () => {
 			await withErrorBoundary(async () => {

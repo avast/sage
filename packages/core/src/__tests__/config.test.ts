@@ -63,4 +63,20 @@ describe("loadConfig", () => {
 		const config = await loadConfig(configPath);
 		expect(config.sensitivity).toBe("balanced");
 	});
+
+	it("defaults disabled_threats to empty array when missing", async () => {
+		const config = await loadConfig("/nonexistent/config.json");
+		expect(config.disabled_threats).toEqual([]);
+	});
+
+	it("parses disabled_threats string array", async () => {
+		const dir = await makeTmpDir();
+		const configPath = join(dir, "config.json");
+		await writeFile(
+			configPath,
+			JSON.stringify({ disabled_threats: ["CLT-CMD-001", "CLT-CMD-002"] }),
+		);
+		const config = await loadConfig(configPath);
+		expect(config.disabled_threats).toEqual(["CLT-CMD-001", "CLT-CMD-002"]);
+	});
 });

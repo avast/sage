@@ -8572,7 +8572,7 @@ var require_sonic_boom = __commonJS({
       if (!(this instanceof SonicBoom)) {
         return new SonicBoom(opts);
       }
-      let { fd, dest, minLength, maxLength, maxWrite, periodicFlush, sync, append = true, mkdir: mkdir3, retryEAGAIN, fsync, contentMode, mode } = opts || {};
+      let { fd, dest, minLength, maxLength, maxWrite, periodicFlush, sync, append = true, mkdir: mkdir4, retryEAGAIN, fsync, contentMode, mode } = opts || {};
       fd = fd || dest;
       this._len = 0;
       this.fd = -1;
@@ -8597,7 +8597,7 @@ var require_sonic_boom = __commonJS({
       this.append = append || false;
       this.mode = mode;
       this.retryEAGAIN = retryEAGAIN || (() => true);
-      this.mkdir = mkdir3 || false;
+      this.mkdir = mkdir4 || false;
       let fsWriteSync;
       let fsWrite;
       if (contentMode === kContentModeBuffer) {
@@ -11632,14 +11632,16 @@ __export(session_start_exports, {
 });
 module.exports = __toCommonJS(session_start_exports);
 var import_node_fs = require("node:fs");
-var import_node_path7 = require("node:path");
+var import_node_path8 = require("node:path");
 
 // ../core/dist/config.js
 var import_node_os = require("node:os");
-var import_node_path = require("node:path");
+var import_node_path2 = require("node:path");
 
 // ../core/dist/file-utils.js
+var import_node_crypto = require("node:crypto");
 var fsPromises = __toESM(require("node:fs/promises"), 1);
+var import_node_path = require("node:path");
 var name1 = "read";
 var name2 = "File";
 function getFileContent(path, encoding = "utf-8") {
@@ -11647,6 +11649,13 @@ function getFileContent(path, encoding = "utf-8") {
 }
 function getFileContentRaw(path) {
   return fsPromises[name1 + name2](path);
+}
+async function atomicWriteJson(path, data) {
+  await fsPromises.mkdir((0, import_node_path.dirname)(path), { recursive: true });
+  const tmp = `${path}.${(0, import_node_crypto.randomBytes)(6).toString("hex")}.tmp`;
+  await fsPromises.writeFile(tmp, `${JSON.stringify(data, null, 2)}
+`, { mode: 384 });
+  await fsPromises.rename(tmp, path);
 }
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
@@ -15762,14 +15771,15 @@ var ConfigSchema = external_exports.object({
   cache: CacheConfigSchema.default({}),
   allowlist: AllowlistConfigSchema.default({}),
   logging: LoggingConfigSchema.default({}),
-  sensitivity: SensitivitySchema.default("balanced")
+  sensitivity: SensitivitySchema.default("balanced"),
+  disabled_threats: external_exports.array(external_exports.string()).default([])
 });
 
 // ../core/dist/config.js
-var DEFAULT_CONFIG_PATH = (0, import_node_path.join)((0, import_node_os.homedir)(), ".sage", "config.json");
+var DEFAULT_CONFIG_PATH = (0, import_node_path2.join)((0, import_node_os.homedir)(), ".sage", "config.json");
 function resolvePath(pathStr) {
   if (pathStr.startsWith("~/") || pathStr === "~") {
-    return (0, import_node_path.join)((0, import_node_os.homedir)(), pathStr.slice(1));
+    return (0, import_node_path2.join)((0, import_node_os.homedir)(), pathStr.slice(1));
   }
   return pathStr;
 }
@@ -15802,7 +15812,7 @@ async function loadConfig(configPath, logger2 = nullLogger) {
 
 // ../core/dist/audit-log.js
 var import_promises = require("node:fs/promises");
-var import_node_path2 = require("node:path");
+var import_node_path3 = require("node:path");
 async function logPluginScan(config, pluginKey, pluginVersion, findings) {
   if (!config.enabled)
     return;
@@ -15816,7 +15826,7 @@ async function logPluginScan(config, pluginKey, pluginVersion, findings) {
   };
   const path = resolvePath(config.path);
   try {
-    await (0, import_promises.mkdir)((0, import_node_path2.dirname)(path), { recursive: true });
+    await (0, import_promises.mkdir)((0, import_node_path3.dirname)(path), { recursive: true });
     await (0, import_promises.appendFile)(path, `${JSON.stringify(entry)}
 `);
   } catch {
@@ -16085,7 +16095,7 @@ function extractUrls(text) {
 
 // ../core/dist/trusted-domains.js
 var import_promises2 = require("node:fs/promises");
-var import_node_path3 = require("node:path");
+var import_node_path4 = require("node:path");
 var import_yaml = __toESM(require_dist(), 1);
 async function loadTrustedDomains(allowlistsDir, logger2 = nullLogger) {
   let files;
@@ -16097,7 +16107,7 @@ async function loadTrustedDomains(allowlistsDir, logger2 = nullLogger) {
   }
   const domains = [];
   for (const filename of files) {
-    const filePath = (0, import_node_path3.join)(allowlistsDir, filename);
+    const filePath = (0, import_node_path4.join)(allowlistsDir, filename);
     let content;
     try {
       content = await getFileContent(filePath);
@@ -16219,7 +16229,7 @@ var HeuristicsEngine = class {
 
 // ../core/dist/threat-loader.js
 var import_promises3 = require("node:fs/promises");
-var import_node_path4 = require("node:path");
+var import_node_path5 = require("node:path");
 var import_yaml2 = __toESM(require_dist(), 1);
 var REQUIRED_FIELDS = /* @__PURE__ */ new Set([
   "id",
@@ -16257,7 +16267,7 @@ async function loadThreats(threatDir, logger2 = nullLogger) {
     return threats;
   }
   for (const filename of files) {
-    const filePath = (0, import_node_path4.join)(threatDir, filename);
+    const filePath = (0, import_node_path5.join)(threatDir, filename);
     let content;
     try {
       content = await getFileContent(filePath);
@@ -16340,10 +16350,18 @@ function kv(key, value) {
 function separatorLine(headerLength) {
   return "\u2501".repeat(headerLength);
 }
-function formatStartupClean(version) {
-  return `\u{1F6E1}\uFE0F Sage v${version} by Gen Digital \u2705 No threats found`;
+function formatUpdateNotice(result) {
+  return `\u2B06\uFE0F  Update available: v${result.currentVersion} \u2192 v${result.latestVersion} (https://github.com/avast/sage)`;
 }
-function formatThreatBanner(version, results) {
+function formatStartupClean(version, versionCheck) {
+  const base = `\u{1F6E1}\uFE0F Sage v${version} by Gen Digital \u2705 No threats found`;
+  if (versionCheck?.updateAvailable) {
+    return `${base}
+${formatUpdateNotice(versionCheck)}`;
+  }
+  return base;
+}
+function formatThreatBanner(version, results, versionCheck) {
   const header = `\u{1F6E1}\uFE0F Sage v${version} by Gen Digital \u2014 Threat Detected`;
   const lines = [" ", header, separatorLine(SEPARATOR_WIDTH)];
   const MAX_FINDINGS = 5;
@@ -16373,21 +16391,25 @@ function formatThreatBanner(version, results) {
       lines.push(`   ... and ${overflow} more findings`);
     }
   }
+  if (versionCheck?.updateAvailable) {
+    lines.push("");
+    lines.push(formatUpdateNotice(versionCheck));
+  }
   return lines.join("\n");
 }
 
 // ../core/dist/plugin-scan-cache.js
-var import_node_crypto = require("node:crypto");
+var import_node_crypto2 = require("node:crypto");
 var import_promises4 = require("node:fs/promises");
 var import_node_os2 = require("node:os");
-var import_node_path5 = require("node:path");
-var DEFAULT_CACHE_PATH = (0, import_node_path5.join)((0, import_node_os2.homedir)(), ".sage", "plugin_scan_cache.json");
+var import_node_path6 = require("node:path");
+var DEFAULT_CACHE_PATH = (0, import_node_path6.join)((0, import_node_os2.homedir)(), ".sage", "plugin_scan_cache.json");
 var CACHE_TTL_DAYS = 7;
 function cacheKey(pluginKey, version, lastUpdated) {
   return `${pluginKey}:${version}:${lastUpdated}`;
 }
 async function computeConfigHash(sageVersion, ...dirs) {
-  const h = (0, import_node_crypto.createHash)("sha256");
+  const h = (0, import_node_crypto2.createHash)("sha256");
   if (sageVersion)
     h.update(sageVersion);
   for (const dir of dirs) {
@@ -16399,7 +16421,7 @@ async function computeConfigHash(sageVersion, ...dirs) {
     }
     for (const file of files) {
       try {
-        const content = await getFileContent((0, import_node_path5.join)(dir, file));
+        const content = await getFileContent((0, import_node_path6.join)(dir, file));
         h.update(content);
       } catch {
       }
@@ -16442,7 +16464,7 @@ async function loadScanCache(configHash = "", cachePath = DEFAULT_CACHE_PATH, lo
 }
 async function saveScanCache(cache, cachePath = DEFAULT_CACHE_PATH, logger2 = nullLogger) {
   try {
-    await (0, import_promises4.mkdir)((0, import_node_path5.dirname)(cachePath), { recursive: true });
+    await (0, import_promises4.mkdir)((0, import_node_path6.dirname)(cachePath), { recursive: true });
     const data = {
       config_hash: cache.configHash,
       entries: Object.fromEntries(Object.entries(cache.entries).map(([key, entry]) => [
@@ -16490,11 +16512,11 @@ function storeResult(cache, pluginKey, version, lastUpdated, findings) {
 }
 
 // ../core/dist/plugin-scanner.js
-var import_node_crypto2 = require("node:crypto");
+var import_node_crypto3 = require("node:crypto");
 var import_promises5 = require("node:fs/promises");
 var import_node_os3 = require("node:os");
-var import_node_path6 = require("node:path");
-var DEFAULT_PLUGINS_REGISTRY = (0, import_node_path6.join)((0, import_node_os3.homedir)(), ".claude", "plugins", "installed_plugins.json");
+var import_node_path7 = require("node:path");
+var DEFAULT_PLUGINS_REGISTRY = (0, import_node_path7.join)((0, import_node_os3.homedir)(), ".claude", "plugins", "installed_plugins.json");
 var SCANNABLE_EXTENSIONS = /* @__PURE__ */ new Set([
   ".py",
   ".js",
@@ -16556,7 +16578,7 @@ async function walkPluginFiles(installPath, logger2) {
     for (const entry of entries) {
       if (SKIP_DIRS.has(entry))
         continue;
-      const fullPath = (0, import_node_path6.join)(dir, entry);
+      const fullPath = (0, import_node_path7.join)(dir, entry);
       let stats;
       try {
         stats = await (0, import_promises5.stat)(fullPath);
@@ -16566,7 +16588,7 @@ async function walkPluginFiles(installPath, logger2) {
       if (stats.isDirectory()) {
         await walk(fullPath);
       } else if (stats.isFile()) {
-        if (!SCANNABLE_EXTENSIONS.has((0, import_node_path6.extname)(fullPath).toLowerCase()))
+        if (!SCANNABLE_EXTENSIONS.has((0, import_node_path7.extname)(fullPath).toLowerCase()))
           continue;
         if (stats.size > MAX_FILE_SIZE)
           continue;
@@ -16595,7 +16617,7 @@ function extractArtifactsFromFile(filePath, content) {
       continue;
     artifacts.push({ type: "url", value: url, context: `plugin_file:${fileName}` });
   }
-  const ext = (0, import_node_path6.extname)(filePath).toLowerCase();
+  const ext = (0, import_node_path7.extname)(filePath).toLowerCase();
   if ([".sh", ".bash", ".zsh", ".py"].includes(ext)) {
     for (const line of content.split("\n")) {
       const trimmed = line.trim();
@@ -16640,7 +16662,7 @@ async function scanPlugin(plugin, threats, options = {}) {
           confidence: match.threat.confidence,
           action: match.threat.action,
           artifact: match.artifact.slice(0, 200),
-          sourceFile: (0, import_node_path6.relative)(plugin.installPath, filePath)
+          sourceFile: (0, import_node_path7.relative)(plugin.installPath, filePath)
         });
       }
     }
@@ -16648,7 +16670,7 @@ async function scanPlugin(plugin, threats, options = {}) {
       allUrls.push(...extractUrls(content));
     }
     if (checkFileHashes) {
-      const sha256 = (0, import_node_crypto2.createHash)("sha256").update(rawBytes).digest("hex");
+      const sha256 = (0, import_node_crypto3.createHash)("sha256").update(rawBytes).digest("hex");
       const existing = hashToFiles.get(sha256);
       if (existing) {
         existing.push(filePath);
@@ -16695,7 +16717,7 @@ async function scanPlugin(plugin, threats, options = {}) {
               confidence: 1,
               action: "block",
               artifact: fr.sha256,
-              sourceFile: (0, import_node_path6.relative)(plugin.installPath, filePath)
+              sourceFile: (0, import_node_path7.relative)(plugin.installPath, filePath)
             });
           }
         }
@@ -16814,18 +16836,147 @@ async function runSessionStartScan(context) {
   return resultsWithFindings;
 }
 
+// ../core/dist/version-check.js
+var GITHUB_RAW_URL = "https://raw.githubusercontent.com/avast/sage/main/packages/core/package.json";
+var DEFAULT_TIMEOUT_MS = 5e3;
+function isNewerVersion(current, latest) {
+  const parse = (v) => v.replace(/^v/, "").split(".").map((n) => Number.parseInt(n, 10) || 0);
+  const cur = parse(current);
+  const lat = parse(latest);
+  for (let i = 0; i < 3; i++) {
+    const c = cur[i] ?? 0;
+    const l = lat[i] ?? 0;
+    if (l > c)
+      return true;
+    if (l < c)
+      return false;
+  }
+  return false;
+}
+async function checkForUpdate(currentVersion, logger2 = nullLogger, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  if (currentVersion === "dev") {
+    logger2.debug("Skipping version check for dev build");
+    return null;
+  }
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const response = await fetch(GITHUB_RAW_URL, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" }
+    });
+    clearTimeout(timer);
+    if (!response.ok) {
+      logger2.debug(`Version check HTTP ${response.status}`);
+      return null;
+    }
+    const body = await response.json();
+    const latestVersion = body.version;
+    if (typeof latestVersion !== "string") {
+      logger2.debug("Version check: no version field in response");
+      return null;
+    }
+    return {
+      currentVersion,
+      latestVersion,
+      updateAvailable: isNewerVersion(currentVersion, latestVersion)
+    };
+  } catch (err) {
+    logger2.debug(`Version check failed: ${err}`);
+    return null;
+  }
+}
+
 // src/session-start.ts
 var import_pino = __toESM(require_pino(), 1);
+
+// src/approval-tracker.ts
+var import_promises6 = require("node:fs/promises");
+var SAGE_DIR = "~/.sage";
+var PENDING_STALE_MS = 60 * 60 * 1e3;
+var CONSUMED_TTL_MS = 10 * 60 * 1e3;
+var STALE_FILE_MS = 2 * 60 * 60 * 1e3;
+async function loadJson(path) {
+  try {
+    const raw = await getFileContent(resolvePath(path));
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+async function saveOrDelete(path, data) {
+  const resolved = resolvePath(path);
+  if (Object.keys(data).length === 0) {
+    try {
+      await (0, import_promises6.unlink)(resolved);
+    } catch {
+    }
+  } else {
+    await atomicWriteJson(resolved, data);
+  }
+}
+function pruneStalePending(store) {
+  const now = Date.now();
+  const result = {};
+  for (const [key, entry] of Object.entries(store)) {
+    if (now - new Date(entry.createdAt).getTime() < PENDING_STALE_MS) {
+      result[key] = entry;
+    }
+  }
+  return result;
+}
+function pruneExpiredConsumed(store) {
+  const now = Date.now();
+  const result = {};
+  for (const [key, entry] of Object.entries(store)) {
+    if (new Date(entry.expiresAt).getTime() > now) {
+      result[key] = entry;
+    }
+  }
+  return result;
+}
+async function pruneStaleSessionFiles(logger2 = nullLogger) {
+  try {
+    const dir = resolvePath(SAGE_DIR);
+    const entries = await (0, import_promises6.readdir)(dir);
+    const now = Date.now();
+    for (const file of entries) {
+      if (!(file.startsWith("pending-approvals-") || file.startsWith("consumed-approvals-")) || !file.endsWith(".json")) {
+        continue;
+      }
+      try {
+        const fullPath = `${dir}/${file}`;
+        const info = await (0, import_promises6.stat)(fullPath);
+        if (now - info.mtimeMs < STALE_FILE_MS) continue;
+        const path = `${SAGE_DIR}/${file}`;
+        if (file.startsWith("pending-approvals-")) {
+          let store = await loadJson(path) ?? {};
+          store = pruneStalePending(store);
+          await saveOrDelete(path, store);
+        } else {
+          let store = await loadJson(path) ?? {};
+          store = pruneExpiredConsumed(store);
+          await saveOrDelete(path, store);
+        }
+      } catch {
+      }
+    }
+  } catch (e) {
+    logger2.warn("Failed to prune stale session files", { error: String(e) });
+  }
+}
+
+// src/session-start.ts
 var logger = (0, import_pino.default)({ level: "warn" }, import_pino.default.destination(2));
 function formatFindings(results) {
   return formatSessionStartFindings(results);
 }
 function getPluginRoot() {
-  return (0, import_node_path7.resolve)(__dirname, "..", "..", "..");
+  return (0, import_node_path8.resolve)(__dirname, "..", "..", "..");
 }
 function getPluginManifest(pluginRoot) {
   try {
-    const manifest = (0, import_node_fs.readFileSync)((0, import_node_path7.join)(pluginRoot, ".claude-plugin", "plugin.json"), "utf-8");
+    const manifest = (0, import_node_fs.readFileSync)((0, import_node_path8.join)(pluginRoot, ".claude-plugin", "plugin.json"), "utf-8");
     const parsed = JSON.parse(manifest);
     return {
       name: parsed.name ?? null,
@@ -16836,24 +16987,28 @@ function getPluginManifest(pluginRoot) {
   }
 }
 async function main() {
+  await pruneStaleSessionFiles(logger);
   const pluginRoot = getPluginRoot();
-  const threatsDir = (0, import_node_path7.join)(pluginRoot, "threats");
-  const allowlistsDir = (0, import_node_path7.join)(pluginRoot, "allowlists");
+  const threatsDir = (0, import_node_path8.join)(pluginRoot, "threats");
+  const allowlistsDir = (0, import_node_path8.join)(pluginRoot, "allowlists");
   const manifest = getPluginManifest(pluginRoot);
-  const resultsWithFindings = await runSessionStartScan({
-    threatsDir,
-    allowlistsDir,
-    sageVersion: manifest.version,
-    excludePluginPrefixes: manifest.name ? [`${manifest.name}@`] : void 0,
-    logger
-  });
+  const [resultsWithFindings, versionCheck] = await Promise.all([
+    runSessionStartScan({
+      threatsDir,
+      allowlistsDir,
+      sageVersion: manifest.version,
+      excludePluginPrefixes: manifest.name ? [`${manifest.name}@`] : void 0,
+      logger
+    }),
+    checkForUpdate(manifest.version, logger)
+  ]);
   if (resultsWithFindings.length === 0) {
-    const cleanMsg = formatStartupClean(manifest.version);
+    const cleanMsg = formatStartupClean(manifest.version, versionCheck);
     process.stdout.write(`${JSON.stringify({ systemMessage: cleanMsg })}
 `);
     return;
   }
-  const statusMsg = formatThreatBanner(manifest.version, resultsWithFindings);
+  const statusMsg = formatThreatBanner(manifest.version, resultsWithFindings, versionCheck);
   process.stdout.write(`${JSON.stringify({ systemMessage: statusMsg })}
 `);
 }

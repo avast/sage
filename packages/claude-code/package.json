@@ -8,8 +8,10 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@sage/core": "workspace:*",
-    "pino": "^9.6.0"
+    "pino": "^9.6.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

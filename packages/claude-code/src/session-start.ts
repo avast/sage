@@ -8,12 +8,14 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
+	checkForUpdate,
 	formatSessionStartFindings,
 	type Logger,
 	type PluginScanResult,
 	runSessionStartScan,
 } from "@sage/core";
 import pino from "pino";
+import { pruneStaleSessionFiles } from "./approval-tracker.js";
 import { formatStartupClean, formatThreatBanner } from "./format.js";
 
 const logger: Logger = pino({ level: "warn" }, pino.destination(2));
@@ -42,26 +44,31 @@ function getPluginManifest(pluginRoot: string): { name: string | null; version: 
 }
 
 async function main(): Promise<void> {
+	await pruneStaleSessionFiles(logger);
+
 	const pluginRoot = getPluginRoot();
 	const threatsDir = join(pluginRoot, "threats");
 	const allowlistsDir = join(pluginRoot, "allowlists");
 	const manifest = getPluginManifest(pluginRoot);
 
-	const resultsWithFindings = await runSessionStartScan({
-		threatsDir,
-		allowlistsDir,
-		sageVersion: manifest.version,
-		excludePluginPrefixes: manifest.name ? [`${manifest.name}@`] : undefined,
-		logger,
-	});
+	const [resultsWithFindings, versionCheck] = await Promise.all([
+		runSessionStartScan({
+			threatsDir,
+			allowlistsDir,
+			sageVersion: manifest.version,
+			excludePluginPrefixes: manifest.name ? [`${manifest.name}@`] : undefined,
+			logger,
+		}),
+		checkForUpdate(manifest.version, logger),
+	]);
 
 	if (resultsWithFindings.length === 0) {
-		const cleanMsg = formatStartupClean(manifest.version);
+		const cleanMsg = formatStartupClean(manifest.version, versionCheck);
 		process.stdout.write(`${JSON.stringify({ systemMessage: cleanMsg })}\n`);
 		return;
 	}
 
-	const statusMsg = formatThreatBanner(manifest.version, resultsWithFindings);
+	const statusMsg = formatThreatBanner(manifest.version, resultsWithFindings, versionCheck);
 	process.stdout.write(`${JSON.stringify({ systemMessage: statusMsg })}\n`);
 }
 

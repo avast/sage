@@ -198,6 +198,7 @@ export const ConfigSchema = z.object({
 	allowlist: AllowlistConfigSchema.default({}),
 	logging: LoggingConfigSchema.default({}),
 	sensitivity: SensitivitySchema.default("balanced"),
+	disabled_threats: z.array(z.string()).default([]),
 });
 
 export type UrlCheckConfig = z.infer<typeof UrlCheckConfigSchema>;
@@ -219,6 +220,7 @@ export interface AllowlistEntry {
 export interface Allowlist {
 	urls: Record<string, AllowlistEntry>;
 	commands: Record<string, AllowlistEntry>;
+	filePaths: Record<string, AllowlistEntry>;
 }
 
 // ── Trusted domains ─────────────────────────────────────────────────

@@ -108,7 +108,11 @@ export async function evaluateToolCall(
 
 	let heuristicMatches: ReturnType<HeuristicsEngine["match"]> = [];
 	if (config.heuristics_enabled) {
-		const threats = await loadThreats(context.threatsDir, logger);
+		let threats = await loadThreats(context.threatsDir, logger);
+		if (config.disabled_threats.length > 0) {
+			const disabledSet = new Set(config.disabled_threats);
+			threats = threats.filter((t) => !disabledSet.has(t.id));
+		}
 		const trustedDomains = await loadTrustedDomains(context.allowlistsDir, logger);
 		const heuristics = new HeuristicsEngine(threats, trustedDomains);
 		heuristicMatches = heuristics.match(request.artifacts);
