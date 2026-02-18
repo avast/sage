@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  quality:
-    name: Code Quality
+  ci:
+    name: Lint, Check, Build & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,23 +19,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
-      - run: pnpm -C packages/core build
-      - run: pnpm check
-
-  build-and-test:
-    name: Build & Test (Node ${{ matrix.node-version }})
-    needs: quality
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18, 22]
-    steps:
-      - uses: actions/checkout@v4
-      - run: corepack enable
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - run: pnpm check
       - run: pnpm test
