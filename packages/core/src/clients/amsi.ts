@@ -4,7 +4,7 @@
  * Fail-open: returns null/safe defaults on any error.
  */
 
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import type { AmsiCheckResult, Logger } from "../types.js";
 import { nullLogger } from "../types.js";
 
@@ -82,8 +82,8 @@ class KoffiAmsiBackend implements AmsiBackend {
 			const lib = koffi.load("amsi.dll");
 
 			// define opaque handle types matching the Win32 AMSI API
-			const HAMSICONTEXT = koffi.pointer("HAMSICONTEXT", koffi.opaque());
-			const HAMSISESSION = koffi.pointer("HAMSISESSION", koffi.opaque());
+			const _HAMSICONTEXT = koffi.pointer("HAMSICONTEXT", koffi.opaque());
+			const _HAMSISESSION = koffi.pointer("HAMSISESSION", koffi.opaque());
 
 			const AmsiInitialize = lib.func(
 				"int32 __stdcall AmsiInitialize(str16 appName, _Out_ HAMSICONTEXT *ctx)",
@@ -349,10 +349,10 @@ class PowershellAmsiBackend implements AmsiBackend {
 				}
 			});
 
-			this.process.stdout!.on("data", (chunk: Buffer) => {
+			this.process.stdout?.on("data", (chunk: Buffer) => {
 				this.stdoutBuffer += chunk.toString();
-				let idx: number;
-				while ((idx = this.stdoutBuffer.indexOf("\n")) !== -1) {
+				let idx = this.stdoutBuffer.indexOf("\n");
+				while (idx !== -1) {
 					const line = this.stdoutBuffer.slice(0, idx).trim();
 					this.stdoutBuffer = this.stdoutBuffer.slice(idx + 1);
 					if (this.pendingResponse) {
@@ -361,14 +361,15 @@ class PowershellAmsiBackend implements AmsiBackend {
 						clearTimeout(timer);
 						resolve(line);
 					}
+					idx = this.stdoutBuffer.indexOf("\n");
 				}
 			});
 
-			this.process.stdin!.on("error", () => {
+			this.process.stdin?.on("error", () => {
 				/* ignore write errors on closed pipe */
 			});
 
-			this.process.stderr!.on("data", (chunk: Buffer) => {
+			this.process.stderr?.on("data", (chunk: Buffer) => {
 				this.logger.debug("AMSI: PowerShell stderr", {
 					data: chunk.toString().slice(0, 200),
 				});
@@ -398,7 +399,7 @@ class PowershellAmsiBackend implements AmsiBackend {
 				content.length > MAX_SCAN_LENGTH ? content.slice(0, MAX_SCAN_LENGTH) : content;
 
 			const req = JSON.stringify({ content: truncated, contentName });
-			this.process.stdin!.write(req + "\n");
+			this.process.stdin?.write(`${req}\n`);
 
 			const line = await this.waitForLine(PS_TIMEOUT);
 			const amsiResult = parseInt(line, 10);
@@ -422,7 +423,7 @@ class PowershellAmsiBackend implements AmsiBackend {
 	close(): void {
 		if (this.process) {
 			try {
-				this.process.stdin!.end();
+				this.process.stdin?.end();
 			} catch {
 				/* best effort */
 			}

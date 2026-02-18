@@ -16130,8 +16130,8 @@ var KoffiAmsiBackend = class {
       const koffiModule = await import("koffi");
       const koffi = koffiModule.default ?? koffiModule;
       const lib = koffi.load("amsi.dll");
-      const HAMSICONTEXT = koffi.pointer("HAMSICONTEXT", koffi.opaque());
-      const HAMSISESSION = koffi.pointer("HAMSISESSION", koffi.opaque());
+      const _HAMSICONTEXT = koffi.pointer("HAMSICONTEXT", koffi.opaque());
+      const _HAMSISESSION = koffi.pointer("HAMSISESSION", koffi.opaque());
       const AmsiInitialize = lib.func("int32 __stdcall AmsiInitialize(str16 appName, _Out_ HAMSICONTEXT *ctx)");
       const AmsiOpenSession = lib.func("int32 __stdcall AmsiOpenSession(HAMSICONTEXT ctx, _Out_ HAMSISESSION *session)");
       this.fnScanBuffer = lib.func("int32 __stdcall AmsiScanBuffer(HAMSICONTEXT ctx, void *buf, uint32 len, str16 contentName, HAMSISESSION session, _Out_ int32 *result)");
@@ -16338,10 +16338,10 @@ var PowershellAmsiBackend = class {
           reject(new Error("process exited"));
         }
       });
-      this.process.stdout.on("data", (chunk) => {
+      this.process.stdout?.on("data", (chunk) => {
         this.stdoutBuffer += chunk.toString();
-        let idx;
-        while ((idx = this.stdoutBuffer.indexOf("\n")) !== -1) {
+        let idx = this.stdoutBuffer.indexOf("\n");
+        while (idx !== -1) {
           const line = this.stdoutBuffer.slice(0, idx).trim();
           this.stdoutBuffer = this.stdoutBuffer.slice(idx + 1);
           if (this.pendingResponse) {
@@ -16350,11 +16350,12 @@ var PowershellAmsiBackend = class {
             clearTimeout(timer);
             resolve2(line);
           }
+          idx = this.stdoutBuffer.indexOf("\n");
         }
       });
-      this.process.stdin.on("error", () => {
+      this.process.stdin?.on("error", () => {
       });
-      this.process.stderr.on("data", (chunk) => {
+      this.process.stderr?.on("data", (chunk) => {
         this.logger.debug("AMSI: PowerShell stderr", {
           data: chunk.toString().slice(0, 200)
         });
@@ -16380,7 +16381,8 @@ var PowershellAmsiBackend = class {
     try {
       const truncated = content.length > MAX_SCAN_LENGTH ? content.slice(0, MAX_SCAN_LENGTH) : content;
       const req = JSON.stringify({ content: truncated, contentName });
-      this.process.stdin.write(req + "\n");
+      this.process.stdin?.write(`${req}
+`);
       const line = await this.waitForLine(PS_TIMEOUT);
       const amsiResult = parseInt(line, 10);
       if (Number.isNaN(amsiResult) || amsiResult < 0) {
@@ -16400,7 +16402,7 @@ var PowershellAmsiBackend = class {
   close() {
     if (this.process) {
       try {
-        this.process.stdin.end();
+        this.process.stdin?.end();
       } catch {
       }
       try {

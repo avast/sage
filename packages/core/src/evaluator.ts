@@ -6,6 +6,7 @@
 import { isAllowlisted, loadAllowlist } from "./allowlist.js";
 import { logVerdict } from "./audit-log.js";
 import { VerdictCache } from "./cache.js";
+import { AmsiClient } from "./clients/amsi.js";
 import { UrlCheckClient } from "./clients/url-check.js";
 import { loadConfig } from "./config.js";
 import { DecisionEngine } from "./engine.js";
@@ -18,8 +19,14 @@ import {
 } from "./package-extractor.js";
 import { loadThreats } from "./threat-loader.js";
 import { loadTrustedDomains } from "./trusted-domains.js";
-import { AmsiClient } from "./clients/amsi.js";
-import type { AmsiCheckResult, Artifact, CachedVerdict, Logger, PackageCheckResult, Verdict } from "./types.js";
+import type {
+	AmsiCheckResult,
+	Artifact,
+	CachedVerdict,
+	Logger,
+	PackageCheckResult,
+	Verdict,
+} from "./types.js";
 import { ConfigSchema, nullLogger } from "./types.js";
 
 export interface ToolEvaluationRequest {

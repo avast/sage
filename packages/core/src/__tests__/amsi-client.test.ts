@@ -19,7 +19,11 @@ import { nullLogger } from "../types.js";
 const mockSpawn = vi.mocked(spawn);
 
 interface MockProcess extends EventEmitter {
-	stdin: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> };
+	stdin: {
+		write: ReturnType<typeof vi.fn>;
+		end: ReturnType<typeof vi.fn>;
+		on: ReturnType<typeof vi.fn>;
+	};
 	stdout: EventEmitter;
 	stderr: EventEmitter;
 	kill: ReturnType<typeof vi.fn>;
@@ -65,7 +69,7 @@ function emitExit(proc: MockProcess, code = 1): void {
 /** Make stdin.write emit a scan result line for each call. */
 function mockScanResult(proc: MockProcess, result: string): void {
 	proc.stdin.write.mockImplementation(() => {
-		queueMicrotask(() => proc.stdout.emit("data", Buffer.from(result + "\n")));
+		queueMicrotask(() => proc.stdout.emit("data", Buffer.from(`${result}\n`)));
 		return true;
 	});
 }
