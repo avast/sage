@@ -220,6 +220,7 @@ export interface AllowlistEntry {
 export interface Allowlist {
 	urls: Record<string, AllowlistEntry>;
 	commands: Record<string, AllowlistEntry>;
+	filePaths: Record<string, AllowlistEntry>;
 }
 
 // ── Trusted domains ─────────────────────────────────────────────────

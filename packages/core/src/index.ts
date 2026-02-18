@@ -3,10 +3,12 @@
 // Allowlist
 export {
 	addCommand,
+	addFilePath,
 	addUrl,
 	isAllowlisted,
 	loadAllowlist,
 	removeCommand,
+	removeFilePath,
 	removeUrl,
 	saveAllowlist,
 } from "./allowlist.js";
@@ -140,4 +142,4 @@ export {
 	VerdictSeveritySchema,
 } from "./types.js";
 // URL utilities
-export { hashCommand, normalizeUrl } from "./url-utils.js";
+export { hashCommand, normalizeFilePath, normalizeUrl } from "./url-utils.js";

@@ -42,10 +42,17 @@ async function main(): Promise<void> {
 		return;
 	}
 
+	const typeLabels: Record<string, string> = {
+		url: "URL",
+		command: "command",
+		file_path: "file path",
+	};
+	const label = typeLabels[entry.artifactType] ?? entry.artifactType;
+
 	const response = {
 		hookSpecificOutput: {
 			hookEventName: "PostToolUse",
-			additionalContext: `Sage: The user approved a flagged action (threat ${entry.threatId}: ${entry.threatTitle}, artifact: '${entry.artifact}'). To permanently allow this specific ${entry.artifactType === "url" ? "URL" : "command"} in the future, you can use the sage_allowlist_add MCP tool.`,
+			additionalContext: `Sage: The user approved a flagged action (threat ${entry.threatId}: ${entry.threatTitle}, artifact: '${entry.artifact}'). To permanently allow this specific ${label} in the future, you can use the sage_allowlist_add MCP tool.`,
 		},
 	};
 

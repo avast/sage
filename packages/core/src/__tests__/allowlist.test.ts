@@ -1,9 +1,17 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { addCommand, addUrl, isAllowlisted, loadAllowlist, saveAllowlist } from "../allowlist.js";
+import {
+	addCommand,
+	addFilePath,
+	addUrl,
+	isAllowlisted,
+	loadAllowlist,
+	removeFilePath,
+	saveAllowlist,
+} from "../allowlist.js";
 import type { Allowlist, AllowlistConfig, Artifact } from "../types.js";
-import { hashCommand } from "../url-utils.js";
+import { hashCommand, normalizeFilePath } from "../url-utils.js";
 import { makeTmpDir } from "./test-utils.js";
 
 function makeConfig(path: string): AllowlistConfig {
@@ -61,6 +69,7 @@ describe("saveAllowlist", () => {
 				},
 			},
 			commands: {},
+			filePaths: {},
 		};
 		await saveAllowlist(al, makeConfig(path));
 		const raw = await readFile(path, "utf-8");
@@ -80,6 +89,7 @@ describe("isAllowlisted", () => {
 				},
 			},
 			commands: {},
+			filePaths: {},
 		};
 		const artifacts: Artifact[] = [{ type: "url", value: "http://safe.com" }];
 		expect(isAllowlisted(al, artifacts)).toBe(true);
@@ -96,13 +106,14 @@ describe("isAllowlisted", () => {
 					originalVerdict: "deny",
 				},
 			},
+			filePaths: {},
 		};
 		const artifacts: Artifact[] = [{ type: "command", value: "safe command" }];
 		expect(isAllowlisted(al, artifacts)).toBe(true);
 	});
 
 	it("returns false when not allowlisted", () => {
-		const al: Allowlist = { urls: {}, commands: {} };
+		const al: Allowlist = { urls: {}, commands: {}, filePaths: {} };
 		const artifacts: Artifact[] = [{ type: "url", value: "http://unknown.com" }];
 		expect(isAllowlisted(al, artifacts)).toBe(false);
 	});
@@ -111,6 +122,7 @@ describe("isAllowlisted", () => {
 		const al: Allowlist = {
 			urls: {},
 			commands: {},
+			filePaths: {},
 		};
 		addUrl(al, "http://safe.com/path", "false positive", "deny");
 		const artifacts: Artifact[] = [{ type: "url", value: "HTTP://SAFE.COM/path" }];
@@ -121,6 +133,7 @@ describe("isAllowlisted", () => {
 		const al: Allowlist = {
 			urls: {},
 			commands: {},
+			filePaths: {},
 		};
 		addUrl(al, "http://safe.com/path?b=2&a=1", "false positive", "deny");
 		const artifacts: Artifact[] = [{ type: "url", value: "http://safe.com/path?a=1&b=2" }];
@@ -128,19 +141,68 @@ describe("isAllowlisted", () => {
 	});
 });
 
-describe("addUrl / addCommand", () => {
+describe("addUrl / addCommand / addFilePath", () => {
 	it("adds URL entry with normalized key", () => {
-		const al: Allowlist = { urls: {}, commands: {} };
+		const al: Allowlist = { urls: {}, commands: {}, filePaths: {} };
 		addUrl(al, "HTTP://NEW.COM/path", "user approved", "deny");
-		// Key should be normalized (lowercased, trailing slash for domain)
 		expect(al.urls["http://new.com/path"]).toBeDefined();
 		expect(al.urls["http://new.com/path"]?.reason).toBe("user approved");
 	});
 
 	it("adds command entry by hash", () => {
-		const al: Allowlist = { urls: {}, commands: {} };
+		const al: Allowlist = { urls: {}, commands: {}, filePaths: {} };
 		addCommand(al, "some command", "user approved", "ask");
 		const hash = hashCommand("some command");
 		expect(al.commands[hash]).toBeDefined();
+	});
+
+	it("adds file path entry with normalized key", () => {
+		const al: Allowlist = { urls: {}, commands: {}, filePaths: {} };
+		addFilePath(al, "~/tmp/test.env", "user approved", "ask");
+		const normalized = normalizeFilePath("~/tmp/test.env");
+		expect(al.filePaths[normalized]).toBeDefined();
+		expect(al.filePaths[normalized]?.reason).toBe("user approved");
+	});
+});
+
+describe("file path allowlisting", () => {
+	it("isAllowlisted matches file_path artifact", () => {
+		const al: Allowlist = { urls: {}, commands: {}, filePaths: {} };
+		addFilePath(al, "/home/user/secrets.env", "approved", "ask");
+		const artifacts: Artifact[] = [{ type: "file_path", value: "/home/user/secrets.env" }];
+		expect(isAllowlisted(al, artifacts)).toBe(true);
+	});
+
+	it("isAllowlisted matches file_path with tilde expansion", () => {
+		const al: Allowlist = { urls: {}, commands: {}, filePaths: {} };
+		addFilePath(al, "~/tmp/test.env", "approved", "ask");
+		const expanded = normalizeFilePath("~/tmp/test.env");
+		const artifacts: Artifact[] = [{ type: "file_path", value: expanded }];
+		expect(isAllowlisted(al, artifacts)).toBe(true);
+	});
+
+	it("removeFilePath removes entry", () => {
+		const al: Allowlist = { urls: {}, commands: {}, filePaths: {} };
+		addFilePath(al, "/tmp/test.env", "approved", "ask");
+		expect(removeFilePath(al, "/tmp/test.env")).toBe(true);
+		expect(Object.keys(al.filePaths)).toHaveLength(0);
+	});
+
+	it("removeFilePath returns false when not found", () => {
+		const al: Allowlist = { urls: {}, commands: {}, filePaths: {} };
+		expect(removeFilePath(al, "/nonexistent")).toBe(false);
+	});
+
+	it("load and save round-trips file_paths", async () => {
+		const dir = await makeTmpDir();
+		const path = join(dir, "allowlist.json");
+		const al: Allowlist = { urls: {}, commands: {}, filePaths: {} };
+		addFilePath(al, "/tmp/test.env", "approved", "ask");
+		await saveAllowlist(al, makeConfig(path));
+
+		const loaded = await loadAllowlist(makeConfig(path));
+		const normalized = normalizeFilePath("/tmp/test.env");
+		expect(loaded.filePaths[normalized]).toBeDefined();
+		expect(loaded.filePaths[normalized]?.reason).toBe("approved");
 	});
 });

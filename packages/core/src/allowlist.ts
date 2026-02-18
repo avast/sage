@@ -1,14 +1,14 @@
 /**
  * User-managed allowlist for overriding false positives.
- * JSON file at ~/.sage/allowlist.json containing URLs and command hashes
- * that the user has explicitly approved.
+ * JSON file at ~/.sage/allowlist.json containing URLs, command hashes,
+ * and file paths that the user has explicitly approved.
  */
 
 import { resolvePath } from "./config.js";
 import { atomicWriteJson, getFileContent } from "./file-utils.js";
 import type { Allowlist, AllowlistConfig, AllowlistEntry, Artifact, Logger } from "./types.js";
 import { nullLogger } from "./types.js";
-import { hashCommand, normalizeUrl } from "./url-utils.js";
+import { hashCommand, normalizeFilePath, normalizeUrl } from "./url-utils.js";
 
 function parseEntries(raw: Record<string, unknown>): Record<string, AllowlistEntry> {
 	const entries: Record<string, AllowlistEntry> = {};
@@ -40,7 +40,7 @@ export async function loadAllowlist(
 	try {
 		raw = await getFileContent(path);
 	} catch {
-		return { urls: {}, commands: {} };
+		return { urls: {}, commands: {}, filePaths: {} };
 	}
 
 	let data: unknown;
@@ -48,12 +48,12 @@ export async function loadAllowlist(
 		data = JSON.parse(raw);
 	} catch (e) {
 		logger.warn(`Failed to load allowlist from ${path}`, { error: String(e) });
-		return { urls: {}, commands: {} };
+		return { urls: {}, commands: {}, filePaths: {} };
 	}
 
 	if (typeof data !== "object" || data === null || Array.isArray(data)) {
 		logger.warn(`Allowlist file ${path} does not contain a JSON object`);
-		return { urls: {}, commands: {} };
+		return { urls: {}, commands: {}, filePaths: {} };
 	}
 
 	const record = data as Record<string, unknown>;
@@ -63,9 +63,16 @@ export async function loadAllowlist(
 	for (const [key, entry] of Object.entries(rawUrls)) {
 		urls[normalizeUrl(key)] = entry;
 	}
+	// Normalize file path keys on load
+	const rawFilePaths = parseEntries((record.file_paths ?? {}) as Record<string, unknown>);
+	const filePaths: Record<string, AllowlistEntry> = {};
+	for (const [key, entry] of Object.entries(rawFilePaths)) {
+		filePaths[normalizeFilePath(key)] = entry;
+	}
 	return {
 		urls,
 		commands: parseEntries((record.commands ?? {}) as Record<string, unknown>),
+		filePaths,
 	};
 }
 
@@ -76,27 +83,22 @@ export async function saveAllowlist(
 ): Promise<void> {
 	const path = resolvePath(config.path);
 
+	const serializeEntries = (entries: Record<string, AllowlistEntry>) =>
+		Object.fromEntries(
+			Object.entries(entries).map(([key, entry]) => [
+				key,
+				{
+					added_at: entry.addedAt,
+					reason: entry.reason,
+					original_verdict: entry.originalVerdict,
+				},
+			]),
+		);
+
 	const data = {
-		urls: Object.fromEntries(
-			Object.entries(allowlist.urls).map(([url, entry]) => [
-				url,
-				{
-					added_at: entry.addedAt,
-					reason: entry.reason,
-					original_verdict: entry.originalVerdict,
-				},
-			]),
-		),
-		commands: Object.fromEntries(
-			Object.entries(allowlist.commands).map(([hash, entry]) => [
-				hash,
-				{
-					added_at: entry.addedAt,
-					reason: entry.reason,
-					original_verdict: entry.originalVerdict,
-				},
-			]),
-		),
+		urls: serializeEntries(allowlist.urls),
+		commands: serializeEntries(allowlist.commands),
+		file_paths: serializeEntries(allowlist.filePaths),
 	};
 
 	try {
@@ -113,6 +115,8 @@ export function isAllowlisted(allowlist: Allowlist, artifacts: Artifact[]): bool
 			const cmdHash = hashCommand(artifact.value);
 			if (cmdHash in allowlist.commands) return true;
 		}
+		if (artifact.type === "file_path" && normalizeFilePath(artifact.value) in allowlist.filePaths)
+			return true;
 	}
 	return false;
 }
@@ -142,6 +146,28 @@ export function addCommand(
 		reason,
 		originalVerdict,
 	};
+}
+
+export function addFilePath(
+	allowlist: Allowlist,
+	filePath: string,
+	reason: string,
+	originalVerdict: string,
+): void {
+	allowlist.filePaths[normalizeFilePath(filePath)] = {
+		addedAt: new Date().toISOString(),
+		reason,
+		originalVerdict,
+	};
+}
+
+export function removeFilePath(allowlist: Allowlist, filePath: string): boolean {
+	const normalized = normalizeFilePath(filePath);
+	if (normalized in allowlist.filePaths) {
+		delete allowlist.filePaths[normalized];
+		return true;
+	}
+	return false;
 }
 
 export function removeUrl(allowlist: Allowlist, url: string): boolean {

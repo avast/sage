@@ -122,7 +122,9 @@ async function main(): Promise<void> {
 		},
 	);
 
-	if (verdict.decision === "ask" && toolUseId) {
+	const artifactType = artifacts[0]?.type ?? "command";
+	// Only track approvals for allowlistable types (content varies per call, not meaningful to allowlist)
+	if (verdict.decision === "ask" && toolUseId && artifactType !== "content") {
 		try {
 			await addPendingApproval(
 				toolUseId,
@@ -130,7 +132,7 @@ async function main(): Promise<void> {
 					threatId: verdict.matchedThreatId ?? "unknown",
 					threatTitle: verdict.reasons[0] ?? verdict.category,
 					artifact: verdict.artifacts[0] ?? "",
-					artifactType: artifacts[0]?.type ?? "command",
+					artifactType,
 				},
 				logger,
 			);

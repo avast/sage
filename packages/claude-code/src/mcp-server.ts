@@ -3,21 +3,24 @@
 /**
  * Sage MCP server for Claude Code.
  * Provides two tools:
- * - sage_allowlist_add: Add a URL or command to the allowlist (requires prior user approval)
- * - sage_allowlist_remove: Remove a URL or command from the allowlist (ungated)
+ * - sage_allowlist_add: Add a URL, command, or file path to the allowlist (requires prior user approval)
+ * - sage_allowlist_remove: Remove a URL, command, or file path from the allowlist (ungated)
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
 	addCommand,
+	addFilePath,
 	addUrl,
 	hashCommand,
 	type Logger,
 	loadAllowlist,
 	loadConfig,
+	normalizeFilePath,
 	normalizeUrl,
 	removeCommand,
+	removeFilePath,
 	removeUrl,
 	saveAllowlist,
 } from "@sage/core";
@@ -34,16 +37,32 @@ const server = new McpServer({
 
 declare const __SAGE_VERSION__: string;
 
+const ARTIFACT_TYPE = z
+	.enum(["url", "command", "file_path"])
+	.describe("Type of artifact: url, command, or file_path");
+
+function displayValue(type: "url" | "command" | "file_path", value: string): string {
+	if (type === "url") return normalizeUrl(value);
+	if (type === "command") return `command hash ${hashCommand(value).slice(0, 12)}...`;
+	return normalizeFilePath(value);
+}
+
+function typeLabel(type: "url" | "command" | "file_path"): string {
+	if (type === "url") return "URL";
+	if (type === "command") return "command";
+	return "file path";
+}
+
 server.registerTool(
 	"sage_allowlist_add",
 	{
 		title: "Sage: Add to Allowlist",
 		description:
-			"Permanently allow a specific URL or command that was previously flagged by Sage. " +
+			"Permanently allow a specific URL, command, or file path that was previously flagged by Sage. " +
 			"Requires the user to have recently approved this exact artifact through Sage's security dialog.",
 		inputSchema: z.object({
-			type: z.enum(["url", "command"]).describe("Type of artifact to allowlist"),
-			value: z.string().describe("The exact URL or command to allowlist"),
+			type: ARTIFACT_TYPE,
+			value: z.string().describe("The exact URL, command, or file path to allowlist"),
 			reason: z.string().optional().describe("Why this is being allowlisted"),
 		}),
 	},
@@ -68,20 +87,21 @@ server.registerTool(
 
 			if (type === "url") {
 				addUrl(allowlist, value, entryReason, "ask");
-			} else {
+			} else if (type === "command") {
 				addCommand(allowlist, value, entryReason, "ask");
+			} else {
+				addFilePath(allowlist, value, entryReason, "ask");
 			}
 
 			await saveAllowlist(allowlist, config.allowlist, logger);
 			await removeConsumedApproval(type, value, logger);
 
-			const display =
-				type === "url" ? normalizeUrl(value) : `command hash ${hashCommand(value).slice(0, 12)}...`;
+			const label = typeLabel(type);
 			return {
 				content: [
 					{
 						type: "text" as const,
-						text: `Added ${type} to Sage allowlist: ${display}. This ${type} will no longer trigger security alerts.`,
+						text: `Added ${label} to Sage allowlist: ${displayValue(type, value)}. This ${label} will no longer trigger security alerts.`,
 					},
 				],
 			};
@@ -99,12 +119,14 @@ server.registerTool(
 	{
 		title: "Sage: Remove from Allowlist",
 		description:
-			"Remove a URL or command from the Sage allowlist, restoring security checks for it.",
+			"Remove a URL, command, or file path from the Sage allowlist, restoring security checks for it.",
 		inputSchema: z.object({
-			type: z.enum(["url", "command"]).describe("Type of artifact to remove"),
+			type: ARTIFACT_TYPE,
 			value: z
 				.string()
-				.describe("The URL to remove, or for commands: the command text or its SHA-256 hash"),
+				.describe(
+					"The URL or file path to remove, or for commands: the command text or its SHA-256 hash",
+				),
 		}),
 	},
 	async ({ type, value }) => {
@@ -115,20 +137,23 @@ server.registerTool(
 			let removed: boolean;
 			if (type === "url") {
 				removed = removeUrl(allowlist, value);
-			} else {
+			} else if (type === "command") {
 				// Try as hash first, then as command text
 				removed = removeCommand(allowlist, value);
 				if (!removed) {
 					removed = removeCommand(allowlist, hashCommand(value));
 				}
+			} else {
+				removed = removeFilePath(allowlist, value);
 			}
 
+			const label = typeLabel(type);
 			if (!removed) {
 				return {
 					content: [
 						{
 							type: "text" as const,
-							text: `${type === "url" ? "URL" : "Command"} not found in the allowlist.`,
+							text: `${label} not found in the allowlist.`,
 						},
 					],
 				};
@@ -139,7 +164,7 @@ server.registerTool(
 				content: [
 					{
 						type: "text" as const,
-						text: `Removed ${type} from Sage allowlist. Security checks will apply to this ${type} again.`,
+						text: `Removed ${label} from Sage allowlist. Security checks will apply to this ${label} again.`,
 					},
 				],
 			};
