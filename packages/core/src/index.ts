@@ -8,7 +8,7 @@ export {
 	loadAllowlist,
 	removeCommand,
 	removeUrl,
-	saveAllowlist
+	saveAllowlist,
 } from "./allowlist.js";
 // Audit log
 export { getRecentEntries, logPluginScan, logVerdict } from "./audit-log.js";
@@ -31,24 +31,25 @@ export {
 	allowVerdict,
 	evaluateToolCall,
 	type ToolEvaluationContext,
-	type ToolEvaluationRequest
+	type ToolEvaluationRequest,
 } from "./evaluator.js";
-// Format (shared alert formatting)
-export {
-	formatStartupClean,
-	formatThreatBanner,
-	kv,
-	separatorLine,
-	severityEmoji
-} from "./format.js";
 // Extractors
 export {
 	extractFromBash,
 	extractFromEdit,
 	extractFromWebFetch,
 	extractFromWrite,
-	extractUrls
+	extractUrls,
 } from "./extractors.js";
+export { getFileContent } from "./file-utils.js";
+// Format (shared alert formatting)
+export {
+	formatStartupClean,
+	formatThreatBanner,
+	kv,
+	separatorLine,
+	severityEmoji,
+} from "./format.js";
 // Heuristics
 export { HeuristicsEngine } from "./heuristics.js";
 export type { PackageCheckerConfig, PackageCheckInput } from "./package-checker.js";
@@ -65,7 +66,7 @@ export {
 	isCached,
 	loadScanCache,
 	saveScanCache,
-	storeResult
+	storeResult,
 } from "./plugin-scan-cache.js";
 // Plugin scanner
 export { discoverPlugins, scanPlugin } from "./plugin-scanner.js";
@@ -73,8 +74,10 @@ export { discoverPlugins, scanPlugin } from "./plugin-scanner.js";
 export {
 	formatSessionStartFindings,
 	fromCachedFinding,
-	runSessionStartScan, toAuditFindingData,
-	toFindingData, type SessionStartScanContext
+	runSessionStartScan,
+	type SessionStartScanContext,
+	toAuditFindingData,
+	toFindingData,
 } from "./session-start-scan.js";
 // Threat loader
 export { loadThreats } from "./threat-loader.js";
@@ -82,27 +85,8 @@ export { loadThreats } from "./threat-loader.js";
 export {
 	extractDomain,
 	isTrustedDomain,
-	loadTrustedDomains
+	loadTrustedDomains,
 } from "./trusted-domains.js";
-// Types
-export {
-	ActionSchema,
-	AllowlistConfigSchema,
-	ArtifactSchema,
-	ArtifactTypeSchema,
-	CacheConfigSchema,
-	ConfigSchema,
-	DecisionSchema,
-	FileCheckConfigSchema,
-	LoggingConfigSchema,
-	nullLogger,
-	PackageCheckConfigSchema,
-	SensitivitySchema,
-	SeveritySchema,
-	ThreatSchema,
-	UrlCheckConfigSchema,
-	VerdictSeveritySchema
-} from "./types.js";
 export type {
 	Allowlist,
 	AllowlistConfig,
@@ -134,10 +118,26 @@ export type {
 	UrlCheckFinding,
 	UrlCheckResult,
 	Verdict,
-	VerdictSeverity
+	VerdictSeverity,
+} from "./types.js";
+// Types
+export {
+	ActionSchema,
+	AllowlistConfigSchema,
+	ArtifactSchema,
+	ArtifactTypeSchema,
+	CacheConfigSchema,
+	ConfigSchema,
+	DecisionSchema,
+	FileCheckConfigSchema,
+	LoggingConfigSchema,
+	nullLogger,
+	PackageCheckConfigSchema,
+	SensitivitySchema,
+	SeveritySchema,
+	ThreatSchema,
+	UrlCheckConfigSchema,
+	VerdictSeveritySchema,
 } from "./types.js";
 // URL utilities
 export { hashCommand, normalizeUrl } from "./url-utils.js";
-
-export { getFileContent } from "./file-utils.js";
-

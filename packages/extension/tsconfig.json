@@ -4,7 +4,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "composite": true,
-    "module": "commonjs",
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "target": "es2020",
     "lib": [
       "es2020"

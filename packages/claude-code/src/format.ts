@@ -4,6 +4,7 @@
  * This file keeps Claude Code-specific verdict formatting and re-exports shared utilities.
  */
 
+import type { Verdict } from "@sage/core";
 import {
 	formatStartupClean,
 	formatThreatBanner,
@@ -11,7 +12,6 @@ import {
 	separatorLine,
 	severityEmoji,
 } from "@sage/core";
-import type { Verdict } from "@sage/core";
 
 // Re-export shared formatting so existing callers are unaffected
 export { formatStartupClean, formatThreatBanner, severityEmoji };
@@ -23,7 +23,7 @@ const SEPARATOR_WIDTH = 48;
 function appendVerdictDetails(lines: string[], verdict: Verdict): void {
 	lines.push(kv("Severity", verdict.severity.toUpperCase()));
 	if (verdict.artifacts.length > 0) {
-		lines.push(kv("Artifact", verdict.artifacts[0]));
+		lines.push(kv("Artifact", verdict.artifacts[0]!));
 		for (const a of verdict.artifacts.slice(1)) {
 			lines.push(kv("", a));
 		}

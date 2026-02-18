@@ -120,9 +120,9 @@ export class UrlCheckClient {
 
 			const findings: UrlCheckFinding[] = malicious
 				? ((malicious.findings ?? []) as Record<string, unknown>[]).map((f) => ({
-					severityName: (f["severity-name"] ?? "unknown") as string,
-					typeName: (f["type-name"] ?? "unknown") as string,
-				}))
+						severityName: (f["severity-name"] ?? "unknown") as string,
+						typeName: (f["type-name"] ?? "unknown") as string,
+					}))
 				: [];
 
 			return {

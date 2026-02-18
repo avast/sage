@@ -1,5 +1,3 @@
-"use strict";
-
 const assert = require("node:assert/strict");
 const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -47,7 +45,9 @@ async function run() {
 	}
 
 	if (failures.length > 0) {
-		throw new Error(`Extension host E2E failed (${failures.length} case(s)):\n\n${failures.join("\n\n")}`);
+		throw new Error(
+			`Extension host E2E failed (${failures.length} case(s)):\n\n${failures.join("\n\n")}`,
+		);
 	}
 }
 
@@ -102,7 +102,9 @@ async function verifyEnableProtection() {
 	const managedCommands = collectManagedCommands(config);
 	assert.ok(managedCommands.length > 0, "Expected at least one managed hook command");
 	assert.ok(
-		managedCommands.some((command) => command.includes(` ${hookMode} `) || command.endsWith(` ${hookMode}`)),
+		managedCommands.some(
+			(command) => command.includes(` ${hookMode} `) || command.endsWith(` ${hookMode}`),
+		),
 		`Expected managed command to invoke mode "${hookMode}"`,
 	);
 }
@@ -178,7 +180,8 @@ function verifyVsCodeManagedHooks(config) {
 	assert.ok(preToolUse.length > 0, "Expected PreToolUse entries in VS Code settings hooks");
 
 	const hasManagedCommand = preToolUse.some((matcherEntry) => {
-		const hooksArray = matcherEntry && typeof matcherEntry === "object" ? matcherEntry.hooks : undefined;
+		const hooksArray =
+			matcherEntry && typeof matcherEntry === "object" ? matcherEntry.hooks : undefined;
 		if (!Array.isArray(hooksArray)) {
 			return false;
 		}

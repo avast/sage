@@ -151,7 +151,12 @@ function extractArtifactsFromFile(filePath: string, content: string): Artifact[]
 	if ([".sh", ".bash", ".zsh", ".py"].includes(ext)) {
 		for (const line of content.split("\n")) {
 			const trimmed = line.trim();
-			if (trimmed && !trimmed.startsWith("#") && !trimmed.startsWith("//") && !isHarmlessEcho(trimmed)) {
+			if (
+				trimmed &&
+				!trimmed.startsWith("#") &&
+				!trimmed.startsWith("//") &&
+				!isHarmlessEcho(trimmed)
+			) {
 				artifacts.push({
 					type: "command",
 					value: trimmed,

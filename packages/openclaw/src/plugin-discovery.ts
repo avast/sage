@@ -3,11 +3,11 @@
  * Walks ~/.openclaw/extensions/ for directories with package.json.
  */
 
-import type { Logger, PluginInfo } from "@sage/core";
-import { getFileContent } from "@sage/core";
 import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import type { Logger, PluginInfo } from "@sage/core";
+import { getFileContent } from "@sage/core";
 
 const DEFAULT_EXTENSIONS_DIR = join(homedir(), ".openclaw", "extensions");
 

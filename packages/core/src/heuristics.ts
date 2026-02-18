@@ -7,7 +7,12 @@ import { extractDomain, isTrustedDomain } from "./trusted-domains.js";
 import type { Artifact, HeuristicMatch, Threat, TrustedDomain } from "./types.js";
 
 /** Threat IDs where trusted installer domains suppress matches. */
-const TRUSTED_DOMAIN_SUPPRESSIBLE = new Set(["CLT-CMD-001", "CLT-CMD-002", "CLT-SUPPLY-001", "CLT-SUPPLY-004"]);
+const TRUSTED_DOMAIN_SUPPRESSIBLE = new Set([
+	"CLT-CMD-001",
+	"CLT-CMD-002",
+	"CLT-SUPPLY-001",
+	"CLT-SUPPLY-004",
+]);
 
 export class HeuristicsEngine {
 	private readonly threatMap: Map<string, Threat[]> = new Map();

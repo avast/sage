@@ -118,7 +118,11 @@ export async function runSessionStartScan(
 		return [];
 	}
 
-	const configHash = await computeConfigHash(context.sageVersion ?? "", context.threatsDir, context.allowlistsDir);
+	const configHash = await computeConfigHash(
+		context.sageVersion ?? "",
+		context.threatsDir,
+		context.allowlistsDir,
+	);
 	const cache = await loadScanCache(configHash, context.scanCachePath, logger);
 	const resultsWithFindings: PluginScanResult[] = [];
 	let cacheModified = false;

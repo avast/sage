@@ -16056,7 +16056,7 @@ var VerdictCache = class {
 };
 
 // ../core/dist/version.js
-var VERSION = true ? "0.3.5" : "dev";
+var VERSION = true ? "0.4.0" : "dev";
 
 // ../core/dist/clients/file-check.js
 var DEFAULT_TIMEOUT = 5;
@@ -16790,7 +16790,12 @@ function isTrustedDomain(domain, trusted) {
 }
 
 // ../core/dist/heuristics.js
-var TRUSTED_DOMAIN_SUPPRESSIBLE = /* @__PURE__ */ new Set(["CLT-CMD-001", "CLT-CMD-002", "CLT-SUPPLY-001", "CLT-SUPPLY-004"]);
+var TRUSTED_DOMAIN_SUPPRESSIBLE = /* @__PURE__ */ new Set([
+  "CLT-CMD-001",
+  "CLT-CMD-002",
+  "CLT-SUPPLY-001",
+  "CLT-SUPPLY-004"
+]);
 var HeuristicsEngine = class {
   threatMap = /* @__PURE__ */ new Map();
   trustedDomains;

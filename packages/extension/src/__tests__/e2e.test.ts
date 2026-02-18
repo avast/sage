@@ -163,7 +163,10 @@ function parseHostName(value: string | undefined): HostName | undefined {
 }
 
 function resolveHostExecutable(host: HostName): HostResolution {
-	const envCandidates = host === "cursor" ? readEnvCandidates(["SAGE_CURSOR_PATH"]) : readEnvCandidates(["SAGE_VSCODE_PATH", "VSCODE_EXECUTABLE_PATH"]);
+	const envCandidates =
+		host === "cursor"
+			? readEnvCandidates(["SAGE_CURSOR_PATH"])
+			: readEnvCandidates(["SAGE_VSCODE_PATH", "VSCODE_EXECUTABLE_PATH"]);
 	const candidates = [...envCandidates, ...defaultExecutableCandidates(host)];
 
 	for (const rawCandidate of dedupe(candidates)) {
@@ -201,8 +204,15 @@ function defaultExecutableCandidates(host: HostName): string[] {
 	const candidates: string[] = [];
 	if (host === "cursor") {
 		if (process.platform === "win32") {
-			pushIfDefined(candidates, process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "Programs", "Cursor", "Cursor.exe"));
-			pushIfDefined(candidates, process.env.ProgramFiles && path.join(process.env.ProgramFiles, "Cursor", "Cursor.exe"));
+			pushIfDefined(
+				candidates,
+				process.env.LOCALAPPDATA &&
+					path.join(process.env.LOCALAPPDATA, "Programs", "Cursor", "Cursor.exe"),
+			);
+			pushIfDefined(
+				candidates,
+				process.env.ProgramFiles && path.join(process.env.ProgramFiles, "Cursor", "Cursor.exe"),
+			);
 			candidates.push(
 				...resolveWindowsWhereCandidates(["cursor"]).filter((candidate) =>
 					isWindowsExecutablePath(candidate),
@@ -227,11 +237,17 @@ function defaultExecutableCandidates(host: HostName): string[] {
 		pushIfDefined(
 			candidates,
 			process.env.LOCALAPPDATA &&
-				path.join(process.env.LOCALAPPDATA, "Programs", "Microsoft VS Code Insiders", "Code - Insiders.exe"),
+				path.join(
+					process.env.LOCALAPPDATA,
+					"Programs",
+					"Microsoft VS Code Insiders",
+					"Code - Insiders.exe",
+				),
 		);
 		pushIfDefined(
 			candidates,
-			process.env.ProgramFiles && path.join(process.env.ProgramFiles, "Microsoft VS Code", "Code.exe"),
+			process.env.ProgramFiles &&
+				path.join(process.env.ProgramFiles, "Microsoft VS Code", "Code.exe"),
 		);
 		pushIfDefined(
 			candidates,
@@ -247,7 +263,13 @@ function defaultExecutableCandidates(host: HostName): string[] {
 		);
 	}
 	if (process.platform === "linux") {
-		candidates.push("/usr/bin/code", "/usr/local/bin/code", "/snap/bin/code", "code", "code-insiders");
+		candidates.push(
+			"/usr/bin/code",
+			"/usr/local/bin/code",
+			"/snap/bin/code",
+			"code",
+			"code-insiders",
+		);
 	}
 	return candidates;
 }
@@ -369,14 +391,21 @@ function createVsCodeExtensionDevelopmentPath(): string {
 	const baseManifest = readManifest(path.join(EXTENSION_ROOT, "package.json"));
 	const vscodeManifest = buildVsCodeManifest(baseManifest);
 
-	cpSync(path.join(EXTENSION_ROOT, "dist"), path.join(stageDir, "dist"), { recursive: true, force: true });
+	cpSync(path.join(EXTENSION_ROOT, "dist"), path.join(stageDir, "dist"), {
+		recursive: true,
+		force: true,
+	});
 	cpSync(path.join(EXTENSION_ROOT, "resources"), path.join(stageDir, "resources"), {
 		recursive: true,
 		force: true,
 	});
 	cpSync(path.join(EXTENSION_ROOT, "README.md"), path.join(stageDir, "README.md"), { force: true });
 	cpSync(path.join(EXTENSION_ROOT, "LICENSE"), path.join(stageDir, "LICENSE"), { force: true });
-	writeFileSync(path.join(stageDir, "package.json"), `${JSON.stringify(vscodeManifest, null, 2)}\n`, "utf8");
+	writeFileSync(
+		path.join(stageDir, "package.json"),
+		`${JSON.stringify(vscodeManifest, null, 2)}\n`,
+		"utf8",
+	);
 
 	return stageDir;
 }

@@ -3,12 +3,12 @@
  * Stores action approvals with TTL expiration at ~/.sage/approvals.json.
  */
 
-import type { Logger } from "@sage/core";
-import { getFileContent } from "@sage/core";
 import { createHash } from "node:crypto";
 import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import type { Logger } from "@sage/core";
+import { getFileContent } from "@sage/core";
 
 const DEFAULT_PATH = join(homedir(), ".sage", "approvals.json");
 const DEFAULT_TTL_SECONDS = 300;
