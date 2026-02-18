@@ -49,6 +49,7 @@ await esbuild.build({
 	target: "node18",
 	format: "cjs",
 	sourcemap: true,
+	external: ["koffi"],
 	entryPoints: ["src/index.ts"],
 	outfile: "dist/index.cjs",
 	define: { __SAGE_VERSION__: JSON.stringify(pkg.version) },

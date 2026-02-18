@@ -17,20 +17,21 @@ async function build() {
 		...shared,
 		entryPoints: ["src/cursor_extension.ts"],
 		outfile: "dist/cursor_extension.js",
-		external: ["vscode"],
+		external: ["vscode", "koffi"],
 	});
 
 	await esbuild.build({
 		...shared,
 		entryPoints: ["src/vscode_extension.ts"],
 		outfile: "dist/vscode_extension.js",
-		external: ["vscode"],
+		external: ["vscode", "koffi"],
 	});
 
 	await esbuild.build({
 		...shared,
 		entryPoints: ["src/sage-hook.ts"],
 		outfile: "dist/sage-hook.cjs",
+		external: ["koffi"],
 	});
 }
 

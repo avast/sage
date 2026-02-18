@@ -15754,10 +15754,14 @@ var PackageCheckConfigSchema = external_exports.object({
   // v1: all scoped packages (@scope/pkg) are skipped automatically.
   // Future: add private_scopes / public_scopes config for fine-grained control.
 });
+var AmsiCheckConfigSchema = external_exports.object({
+  enabled: external_exports.boolean().default(true)
+});
 var ConfigSchema = external_exports.object({
   url_check: UrlCheckConfigSchema.default({}),
   file_check: FileCheckConfigSchema.default({}),
   package_check: PackageCheckConfigSchema.default({}),
+  amsi_check: AmsiCheckConfigSchema.default({}),
   heuristics_enabled: external_exports.boolean().default(true),
   cache: CacheConfigSchema.default({}),
   allowlist: AllowlistConfigSchema.default({}),
@@ -16081,6 +16085,119 @@ var VerdictCache = class {
     } catch (e) {
       this.logger.warn(`Failed to save cache to ${this.path}`, { error: String(e) });
     }
+  }
+};
+
+// ../core/dist/clients/amsi.js
+var AMSI_RESULT_DETECTED = 32768;
+var AMSI_RESULT_BLOCKED_BY_ADMIN_START = 16384;
+var MAX_SCAN_LENGTH = 1048576;
+var AmsiClient = class {
+  logger;
+  context = null;
+  session = null;
+  available = false;
+  // koffi function references
+  fnScanBuffer = null;
+  fnCloseSession = null;
+  fnUninitialize = null;
+  constructor(logger2 = nullLogger) {
+    this.logger = logger2;
+  }
+  get isAvailable() {
+    return this.available;
+  }
+  async init() {
+    if (process.platform !== "win32") {
+      this.logger.debug("AMSI: skipping, not Windows");
+      return;
+    }
+    try {
+      const koffi = await import("koffi");
+      const lib = koffi.load("amsi.dll");
+      const AmsiInitialize = lib.func("AmsiInitialize", "int32", ["str16", "*"]);
+      const AmsiOpenSession = lib.func("AmsiOpenSession", "int32", ["*", "*"]);
+      this.fnScanBuffer = lib.func("AmsiScanBuffer", "int32", [
+        "*",
+        "*",
+        "uint32",
+        "str16",
+        "*",
+        "*"
+      ]);
+      this.fnCloseSession = lib.func("AmsiCloseSession", "void", ["*", "*"]);
+      this.fnUninitialize = lib.func("AmsiUninitialize", "void", ["*"]);
+      const contextPtr = Buffer.alloc(8);
+      const hr = AmsiInitialize("Sage", contextPtr);
+      if (hr !== 0) {
+        this.logger.warn("AMSI: AmsiInitialize failed", { hr });
+        return;
+      }
+      this.context = contextPtr;
+      const sessionPtr = Buffer.alloc(8);
+      const hr2 = AmsiOpenSession(contextPtr, sessionPtr);
+      if (hr2 !== 0) {
+        this.logger.warn("AMSI: AmsiOpenSession failed", { hr: hr2 });
+        try {
+          this.fnUninitialize(contextPtr);
+        } catch {
+        }
+        this.context = null;
+        return;
+      }
+      this.session = sessionPtr;
+      this.available = true;
+      this.logger.debug("AMSI: initialized successfully");
+    } catch (e) {
+      this.logger.debug("AMSI: initialization failed", { error: String(e) });
+      this.available = false;
+    }
+  }
+  scanString(content, contentName) {
+    if (!this.available || !this.fnScanBuffer || !this.context || !this.session) {
+      return null;
+    }
+    try {
+      const truncated = content.length > MAX_SCAN_LENGTH ? content.slice(0, MAX_SCAN_LENGTH) : content;
+      const buf = Buffer.from(truncated, "utf-8");
+      const resultBuf = Buffer.alloc(4);
+      const hr = this.fnScanBuffer(this.context, buf, buf.length, contentName, this.session, resultBuf);
+      if (hr !== 0) {
+        this.logger.warn("AMSI: AmsiScanBuffer failed", { hr, contentName });
+        return null;
+      }
+      const amsiResult = resultBuf.readInt32LE(0);
+      const isDetected = amsiResult >= AMSI_RESULT_DETECTED;
+      const isBlockedByAdmin = amsiResult >= AMSI_RESULT_BLOCKED_BY_ADMIN_START && amsiResult < AMSI_RESULT_DETECTED;
+      this.logger.debug("AMSI: scan result", { contentName, amsiResult, isDetected, isBlockedByAdmin });
+      return {
+        content: content.length > 200 ? `${content.slice(0, 200)}...` : content,
+        contentName,
+        amsiResult,
+        isDetected,
+        isBlockedByAdmin
+      };
+    } catch (e) {
+      this.logger.warn("AMSI: scanBuffer failed", { error: String(e), contentName });
+      return null;
+    }
+  }
+  close() {
+    try {
+      if (this.session && this.context && this.fnCloseSession) {
+        this.fnCloseSession(this.context, this.session);
+      }
+    } catch {
+    }
+    try {
+      if (this.context && this.fnUninitialize) {
+        this.fnUninitialize(this.context);
+      }
+    } catch {
+    }
+    this.session = null;
+    this.context = null;
+    this.available = false;
   }
 };
 
@@ -16515,7 +16632,7 @@ var DecisionEngine = class {
     } else {
       sources = heuristicMatchesOrSources;
     }
-    const signals = this.collectSignals(sources.heuristicMatches, sources.urlCheckResults, sources.packageCheckResults);
+    const signals = this.collectSignals(sources.heuristicMatches, sources.urlCheckResults, sources.packageCheckResults, sources.amsiCheckResults);
     if (signals.length === 0) {
       return this.allowVerdict();
     }
@@ -16542,7 +16659,7 @@ var DecisionEngine = class {
       reasons: allReasons
     };
   }
-  collectSignals(heuristicMatches, urlCheckResults, packageCheckResults) {
+  collectSignals(heuristicMatches, urlCheckResults, packageCheckResults, amsiCheckResults) {
     const signals = [];
     for (const match of heuristicMatches) {
       signals.push({
@@ -16590,6 +16707,33 @@ var DecisionEngine = class {
         const signal = this.packageVerdictToSignal(pkg);
         if (signal)
           signals.push(signal);
+      }
+    }
+    if (amsiCheckResults) {
+      for (const result of amsiCheckResults) {
+        if (result.isDetected) {
+          signals.push({
+            decision: "deny",
+            category: "malware",
+            confidence: 1,
+            severity: "critical",
+            source: "amsi",
+            threatId: null,
+            reason: `AMSI detected malware in ${result.contentName} (result=${result.amsiResult})`,
+            artifact: result.contentName
+          });
+        } else if (result.isBlockedByAdmin) {
+          signals.push({
+            decision: "deny",
+            category: "malware",
+            confidence: 0.9,
+            severity: "critical",
+            source: "amsi",
+            threatId: null,
+            reason: `AMSI: content blocked by admin policy in ${result.contentName} (result=${result.amsiResult})`,
+            artifact: result.contentName
+          });
+        }
       }
     }
     return signals;
@@ -17568,11 +17712,50 @@ async function evaluateToolCall(request, context) {
     } catch {
     }
   }
+  const amsiCheckResults = [];
+  if (config.amsi_check.enabled && process.platform === "win32") {
+    let amsiClient = null;
+    try {
+      amsiClient = new AmsiClient(logger2);
+      await amsiClient.init();
+      if (amsiClient.isAvailable) {
+        const scans = [];
+        if (request.toolName === "Bash") {
+          const command = request.toolInput.command ?? "";
+          if (command) {
+            scans.push({ content: command, name: `Bash:command` });
+          }
+        } else if (request.toolName === "Write") {
+          const filePath = request.toolInput.file_path ?? "";
+          const content = request.toolInput.content ?? "";
+          if (content) {
+            scans.push({ content, name: `Write:${filePath}` });
+          }
+        } else if (request.toolName === "Edit") {
+          const filePath = request.toolInput.file_path ?? "";
+          const newString = request.toolInput.new_string ?? "";
+          if (newString) {
+            scans.push({ content: newString, name: `Edit:${filePath}` });
+          }
+        }
+        for (const scan of scans) {
+          const result = amsiClient.scanString(scan.content, scan.name);
+          if (result) {
+            amsiCheckResults.push(result);
+          }
+        }
+      }
+    } catch {
+    } finally {
+      amsiClient?.close();
+    }
+  }
   const engine = new DecisionEngine(config.sensitivity);
   let verdict = await engine.decide({
     heuristicMatches,
     urlCheckResults,
-    packageCheckResults: packageCheckResults.length > 0 ? packageCheckResults : void 0
+    packageCheckResults: packageCheckResults.length > 0 ? packageCheckResults : void 0,
+    amsiCheckResults: amsiCheckResults.length > 0 ? amsiCheckResults : void 0
   });
   if (cachedUrlVerdicts.size > 0 && verdict.decision === "allow") {
     for (const [url, cachedVerdict] of cachedUrlVerdicts) {

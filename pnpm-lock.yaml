@@ -64,6 +64,10 @@ importers:
       vitest:
         specifier: ^4.0.0
         version: 4.0.18(@types/node@22.19.11)(yaml@2.8.2)
+    optionalDependencies:
+      koffi:
+        specifier: ^2.9.0
+        version: 2.15.1
 
   packages/extension:
     dependencies:
@@ -989,6 +993,9 @@ packages:
 
   jszip@3.10.1:
     resolution: {integrity: sha512-xXDvecyTpGLrqFrvkrUSoxxfJI5AH7U8zxxtVclpsUtMCq4JQ290LY8AW5c7Ggnr/Y/oK+bQMbqK2qmtk3pN4g==}
+
+  koffi@2.15.1:
+    resolution: {integrity: sha512-mnc0C0crx/xMSljb5s9QbnLrlFHprioFO1hkXyuSuO/QtbpLDa0l/uM21944UfQunMKmp3/r789DTDxVyyH6aA==}
 
   lie@3.3.0:
     resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
@@ -2099,6 +2106,9 @@ snapshots:
       pako: 1.0.11
       readable-stream: 2.3.8
       setimmediate: 1.0.5
+
+  koffi@2.15.1:
+    optional: true
 
   lie@3.3.0:
     dependencies:

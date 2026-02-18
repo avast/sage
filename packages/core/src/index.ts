@@ -17,6 +17,8 @@ export {
 export { getRecentEntries, logPluginScan, logVerdict } from "./audit-log.js";
 // Cache
 export { VerdictCache } from "./cache.js";
+// AMSI client
+export { AmsiClient } from "./clients/amsi.js";
 export type { FileCheckBatchResult, FileCheckResult } from "./clients/file-check.js";
 // File-check client
 export { FileCheckClient } from "./clients/file-check.js";
@@ -95,6 +97,8 @@ export type {
 	Allowlist,
 	AllowlistConfig,
 	AllowlistEntry,
+	AmsiCheckConfig,
+	AmsiCheckResult,
 	Artifact,
 	CacheConfig,
 	CachedEntry,

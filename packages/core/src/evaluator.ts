@@ -18,7 +18,8 @@ import {
 } from "./package-extractor.js";
 import { loadThreats } from "./threat-loader.js";
 import { loadTrustedDomains } from "./trusted-domains.js";
-import type { Artifact, CachedVerdict, Logger, PackageCheckResult, Verdict } from "./types.js";
+import { AmsiClient } from "./clients/amsi.js";
+import type { AmsiCheckResult, Artifact, CachedVerdict, Logger, PackageCheckResult, Verdict } from "./types.js";
 import { ConfigSchema, nullLogger } from "./types.js";
 
 export interface ToolEvaluationRequest {
@@ -198,11 +199,55 @@ export async function evaluateToolCall(
 		}
 	}
 
+	// AMSI scan (Windows only)
+	const amsiCheckResults: AmsiCheckResult[] = [];
+	if (config.amsi_check.enabled && process.platform === "win32") {
+		let amsiClient: AmsiClient | null = null;
+		try {
+			amsiClient = new AmsiClient(logger);
+			await amsiClient.init();
+			if (amsiClient.isAvailable) {
+				const scans: { content: string; name: string }[] = [];
+
+				if (request.toolName === "Bash") {
+					const command = (request.toolInput.command ?? "") as string;
+					if (command) {
+						scans.push({ content: command, name: `Bash:command` });
+					}
+				} else if (request.toolName === "Write") {
+					const filePath = (request.toolInput.file_path ?? "") as string;
+					const content = (request.toolInput.content ?? "") as string;
+					if (content) {
+						scans.push({ content, name: `Write:${filePath}` });
+					}
+				} else if (request.toolName === "Edit") {
+					const filePath = (request.toolInput.file_path ?? "") as string;
+					const newString = (request.toolInput.new_string ?? "") as string;
+					if (newString) {
+						scans.push({ content: newString, name: `Edit:${filePath}` });
+					}
+				}
+
+				for (const scan of scans) {
+					const result = amsiClient.scanString(scan.content, scan.name);
+					if (result) {
+						amsiCheckResults.push(result);
+					}
+				}
+			}
+		} catch {
+			// Fail open
+		} finally {
+			amsiClient?.close();
+		}
+	}
+
 	const engine = new DecisionEngine(config.sensitivity);
 	let verdict = await engine.decide({
 		heuristicMatches,
 		urlCheckResults,
 		packageCheckResults: packageCheckResults.length > 0 ? packageCheckResults : undefined,
+		amsiCheckResults: amsiCheckResults.length > 0 ? amsiCheckResults : undefined,
 	});
 
 	if (cachedUrlVerdicts.size > 0 && verdict.decision === "allow") {

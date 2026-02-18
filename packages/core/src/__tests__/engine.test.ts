@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { CONFIDENCE_THRESHOLD, DecisionEngine } from "../engine.js";
-import type { HeuristicMatch, PackageCheckResult, Threat, UrlCheckResult } from "../types.js";
+import type {
+	AmsiCheckResult,
+	HeuristicMatch,
+	PackageCheckResult,
+	Threat,
+	UrlCheckResult,
+} from "../types.js";
 
 function makeThreat(overrides: Partial<Threat> = {}): Threat {
 	return {
@@ -336,5 +342,84 @@ describe("SensitivityPresets", () => {
 		const match = makeMatch({ action: "block", confidence: 0.84, severity: "critical" });
 		const verdict = await engine.decide([match], []);
 		expect(verdict.decision).toBe("ask");
+	});
+});
+
+describe("AmsiCheckSignals", () => {
+	it("AMSI detected produces deny/critical at 1.0", async () => {
+		const engine = new DecisionEngine();
+		const amsi: AmsiCheckResult = {
+			content: "malicious content",
+			contentName: "Bash:command",
+			amsiResult: 32768,
+			isDetected: true,
+			isBlockedByAdmin: false,
+		};
+		const verdict = await engine.decide({
+			heuristicMatches: [],
+			urlCheckResults: [],
+			amsiCheckResults: [amsi],
+		});
+		expect(verdict.decision).toBe("deny");
+		expect(verdict.severity).toBe("critical");
+		expect(verdict.confidence).toBe(1.0);
+		expect(verdict.source).toBe("amsi");
+		expect(verdict.category).toBe("malware");
+	});
+
+	it("AMSI blocked by admin produces deny/critical at 0.9", async () => {
+		const engine = new DecisionEngine();
+		const amsi: AmsiCheckResult = {
+			content: "blocked content",
+			contentName: "Write:/tmp/test.ps1",
+			amsiResult: 16384,
+			isDetected: false,
+			isBlockedByAdmin: true,
+		};
+		const verdict = await engine.decide({
+			heuristicMatches: [],
+			urlCheckResults: [],
+			amsiCheckResults: [amsi],
+		});
+		expect(verdict.decision).toBe("deny");
+		expect(verdict.severity).toBe("critical");
+		expect(verdict.confidence).toBe(0.9);
+		expect(verdict.source).toBe("amsi");
+	});
+
+	it("AMSI clean produces no signal (allow)", async () => {
+		const engine = new DecisionEngine();
+		const amsi: AmsiCheckResult = {
+			content: "echo hello",
+			contentName: "Bash:command",
+			amsiResult: 0,
+			isDetected: false,
+			isBlockedByAdmin: false,
+		};
+		const verdict = await engine.decide({
+			heuristicMatches: [],
+			urlCheckResults: [],
+			amsiCheckResults: [amsi],
+		});
+		expect(verdict.decision).toBe("allow");
+	});
+
+	it("AMSI detected wins over heuristic ask (merge precedence)", async () => {
+		const engine = new DecisionEngine();
+		const match = makeMatch({ action: "require_approval", confidence: 0.9, severity: "high" });
+		const amsi: AmsiCheckResult = {
+			content: "malicious",
+			contentName: "Bash:command",
+			amsiResult: 32768,
+			isDetected: true,
+			isBlockedByAdmin: false,
+		};
+		const verdict = await engine.decide({
+			heuristicMatches: [match],
+			urlCheckResults: [],
+			amsiCheckResults: [amsi],
+		});
+		expect(verdict.decision).toBe("deny");
+		expect(verdict.confidence).toBe(1.0);
 	});
 });

@@ -15763,10 +15763,14 @@ var PackageCheckConfigSchema = external_exports.object({
   // v1: all scoped packages (@scope/pkg) are skipped automatically.
   // Future: add private_scopes / public_scopes config for fine-grained control.
 });
+var AmsiCheckConfigSchema = external_exports.object({
+  enabled: external_exports.boolean().default(true)
+});
 var ConfigSchema = external_exports.object({
   url_check: UrlCheckConfigSchema.default({}),
   file_check: FileCheckConfigSchema.default({}),
   package_check: PackageCheckConfigSchema.default({}),
+  amsi_check: AmsiCheckConfigSchema.default({}),
   heuristics_enabled: external_exports.boolean().default(true),
   cache: CacheConfigSchema.default({}),
   allowlist: AllowlistConfigSchema.default({}),
