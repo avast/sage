@@ -41,7 +41,7 @@ export {
 	extractFromWrite,
 	extractUrls,
 } from "./extractors.js";
-export { getFileContent } from "./file-utils.js";
+export { atomicWriteJson, getFileContent } from "./file-utils.js";
 // Format (shared alert formatting)
 export {
 	formatStartupClean,

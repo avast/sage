@@ -4,10 +4,8 @@
  * that the user has explicitly approved.
  */
 
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
 import { resolvePath } from "./config.js";
-import { getFileContent } from "./file-utils.js";
+import { atomicWriteJson, getFileContent } from "./file-utils.js";
 import type { Allowlist, AllowlistConfig, AllowlistEntry, Artifact, Logger } from "./types.js";
 import { nullLogger } from "./types.js";
 import { hashCommand, normalizeUrl } from "./url-utils.js";
@@ -102,8 +100,7 @@ export async function saveAllowlist(
 	};
 
 	try {
-		await mkdir(dirname(path), { recursive: true });
-		await writeFile(path, `${JSON.stringify(data, null, 2)}\n`);
+		await atomicWriteJson(path, data);
 	} catch (e) {
 		logger.warn(`Failed to save allowlist to ${path}`, { error: String(e) });
 	}

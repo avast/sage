@@ -8572,7 +8572,7 @@ var require_sonic_boom = __commonJS({
       if (!(this instanceof SonicBoom)) {
         return new SonicBoom(opts);
       }
-      let { fd, dest, minLength, maxLength, maxWrite, periodicFlush, sync, append = true, mkdir: mkdir3, retryEAGAIN, fsync, contentMode, mode } = opts || {};
+      let { fd, dest, minLength, maxLength, maxWrite, periodicFlush, sync, append = true, mkdir: mkdir4, retryEAGAIN, fsync, contentMode, mode } = opts || {};
       fd = fd || dest;
       this._len = 0;
       this.fd = -1;
@@ -8597,7 +8597,7 @@ var require_sonic_boom = __commonJS({
       this.append = append || false;
       this.mode = mode;
       this.retryEAGAIN = retryEAGAIN || (() => true);
-      this.mkdir = mkdir3 || false;
+      this.mkdir = mkdir4 || false;
       let fsWriteSync;
       let fsWrite;
       if (contentMode === kContentModeBuffer) {
@@ -15762,7 +15762,8 @@ var ConfigSchema = external_exports.object({
   cache: CacheConfigSchema.default({}),
   allowlist: AllowlistConfigSchema.default({}),
   logging: LoggingConfigSchema.default({}),
-  sensitivity: SensitivitySchema.default("balanced")
+  sensitivity: SensitivitySchema.default("balanced"),
+  disabled_threats: external_exports.array(external_exports.string()).default([])
 });
 
 // ../core/dist/config.js

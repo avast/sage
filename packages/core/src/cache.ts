@@ -3,10 +3,8 @@
  * Replaces the Python SQLite implementation.
  */
 
-import { chmod, mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
 import { resolvePath } from "./config.js";
-import { getFileContent } from "./file-utils.js";
+import { atomicWriteJson, getFileContent } from "./file-utils.js";
 import type { CacheConfig, CachedVerdict, CacheStore, Logger } from "./types.js";
 import { nullLogger } from "./types.js";
 import { normalizeUrl } from "./url-utils.js";
@@ -156,13 +154,7 @@ export class VerdictCache {
 		if (!this.config.enabled) return;
 
 		try {
-			await mkdir(dirname(this.path), { recursive: true });
-			await writeFile(this.path, JSON.stringify(this.store, null, 2));
-			try {
-				await chmod(this.path, 0o600);
-			} catch {
-				// Ignore chmod errors
-			}
+			await atomicWriteJson(this.path, this.store);
 		} catch (e) {
 			this.logger.warn(`Failed to save cache to ${this.path}`, { error: String(e) });
 		}

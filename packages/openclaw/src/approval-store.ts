@@ -4,11 +4,10 @@
  */
 
 import { createHash } from "node:crypto";
-import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import type { Logger } from "@sage/core";
-import { getFileContent } from "@sage/core";
+import { atomicWriteJson, getFileContent } from "@sage/core";
 
 const DEFAULT_PATH = join(homedir(), ".sage", "approvals.json");
 const DEFAULT_TTL_SECONDS = 300;
@@ -69,13 +68,7 @@ export class ApprovalStore {
 
 	private async save(): Promise<void> {
 		try {
-			await mkdir(dirname(this.path), { recursive: true });
-			await writeFile(this.path, JSON.stringify(this.data, null, 2));
-			try {
-				await chmod(this.path, 0o600);
-			} catch {
-				// Ignore chmod errors
-			}
+			await atomicWriteJson(this.path, this.data);
 		} catch (e) {
 			this.logger.warn(`Failed to save approvals to ${this.path}`, { error: String(e) });
 		}
