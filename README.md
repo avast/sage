@@ -2,7 +2,9 @@
 
 **Safety for Agents** - a lightweight Agent Detection & Response (ADR) layer for AI agents that guards commands, files, and web requests.
 
-![Sage](images/sage-raster.png)
+<p align="center">
+  <img src="images/sage-logo-shaded.png" alt="Sage" width="50%">
+</p>
 
 Sage intercepts tool calls (Bash commands, URL fetches, file writes) via hook systems in [Claude Code](docs/platform-guides/claude-code.md), [Cursor / VS Code](docs/platform-guides/cursor.md), and [OpenClaw](docs/platform-guides/openclaw.md), and checks them against:
 
@@ -39,18 +41,18 @@ See [Getting Started](docs/getting-started.md) for detailed instructions.
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Getting Started](docs/getting-started.md) | Installation for all platforms |
-| [How It Works](docs/how-it-works.md) | Detection layers, data flow, verdicts |
-| [Configuration](docs/configuration.md) | All config options and file paths |
-| [Threat Rules](docs/threat-rules.md) | YAML rule format and what gets checked |
-| [Package Protection](docs/package-protection.md) | npm/PyPI supply-chain checks |
-| [Plugin Scanning](docs/plugin-scanning.md) | Session-start plugin scanning |
-| [Architecture](docs/architecture.md) | Monorepo structure, packages, design decisions |
-| [Development](docs/development.md) | Building, testing, tooling, conventions |
-| [FAQ](docs/faq.md) | Common questions |
-| [Privacy](docs/privacy.md) | What data is sent, what stays local |
+| Document                                         | Description                                    |
+| ------------------------------------------------ | ---------------------------------------------- |
+| [Getting Started](docs/getting-started.md)       | Installation for all platforms                 |
+| [How It Works](docs/how-it-works.md)             | Detection layers, data flow, verdicts          |
+| [Configuration](docs/configuration.md)           | All config options and file paths              |
+| [Threat Rules](docs/threat-rules.md)             | YAML rule format and what gets checked         |
+| [Package Protection](docs/package-protection.md) | npm/PyPI supply-chain checks                   |
+| [Plugin Scanning](docs/plugin-scanning.md)       | Session-start plugin scanning                  |
+| [Architecture](docs/architecture.md)             | Monorepo structure, packages, design decisions |
+| [Development](docs/development.md)               | Building, testing, tooling, conventions        |
+| [FAQ](docs/faq.md)                               | Common questions                               |
+| [Privacy](docs/privacy.md)                       | What data is sent, what stays local            |
 
 **Platform guides:** [Claude Code](docs/platform-guides/claude-code.md) · [Cursor / VS Code](docs/platform-guides/cursor.md) · [OpenClaw](docs/platform-guides/openclaw.md)
 
