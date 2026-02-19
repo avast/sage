@@ -17,6 +17,8 @@ Sage intercepts tool calls (Bash commands, URL fetches, file writes) via hook sy
 
 ### Claude Code
 
+Requires [Node.js >= 18](https://nodejs.org/).
+
 ```
 /plugin marketplace add https://github.com/avast/sage.git
 /plugin install sage@sage

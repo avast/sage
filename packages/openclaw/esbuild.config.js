@@ -46,7 +46,7 @@ const stripYamlProcessRefs = {
 await esbuild.build({
 	bundle: true,
 	platform: "node",
-	target: "node22",
+	target: "node18",
 	format: "cjs",
 	sourcemap: true,
 	entryPoints: ["src/index.ts"],

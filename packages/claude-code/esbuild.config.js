@@ -6,7 +6,7 @@ const pkg = JSON.parse(readFileSync("../core/package.json", "utf-8"));
 const shared = {
 	bundle: true,
 	platform: "node",
-	target: "node22",
+	target: "node18",
 	format: "cjs",
 	external: [],
 	sourcemap: true,
