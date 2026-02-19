@@ -1,4 +1,4 @@
-# @gendigital/sage
+# @gendigital/sage-openclaw
 
 **Safety for Agents** - Agent Detection & Response (ADR) plugin for [OpenClaw](https://openclaw.dev).
 
@@ -7,7 +7,7 @@ Sage intercepts tool calls (shell commands, URL fetches, file writes) and checks
 ## Installation
 
 ```bash
-openclaw plugins install @gendigital/sage
+openclaw plugins install @gendigital/sage-openclaw
 ```
 
 ## What It Does

@@ -48,7 +48,7 @@ Install from npm or build from source:
 
 ```bash
 # From npm (recommended)
-openclaw plugins install @gendigital/sage
+openclaw plugins install @gendigital/sage-openclaw
 
 # From source
 pnpm install && pnpm build

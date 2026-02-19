@@ -36,7 +36,7 @@ pnpm install && pnpm -C packages/extension run package:cursor:vsix
 
 ```bash
 # From npm (recommended)
-openclaw plugins install @gendigital/sage
+openclaw plugins install @gendigital/sage-openclaw
 
 # From source
 pnpm install && pnpm build
