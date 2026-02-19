@@ -15894,7 +15894,7 @@ async function logPluginScan(config, pluginKey, pluginVersion, findings) {
 }
 
 // ../core/dist/version.js
-var VERSION = true ? "0.4.3" : "dev";
+var VERSION = true ? "0.4.4" : "dev";
 
 // ../core/dist/clients/file-check.js
 var DEFAULT_TIMEOUT = 5;

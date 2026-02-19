@@ -28,11 +28,7 @@ function toolInputSummary(toolName: string, toolInput: Record<string, unknown>):
  * Classic logrotate: shift numbered backups and rename active file to .1.
  * All renames wrapped in try/catch ignoring ENOENT for race safety.
  */
-export async function rotateIfNeeded(
-	filePath: string,
-	maxBytes: number,
-	maxFiles: number,
-): Promise<void> {
+async function rotateIfNeeded(filePath: string, maxBytes: number, maxFiles: number): Promise<void> {
 	if (maxBytes <= 0 || maxFiles <= 0) return;
 
 	let size: number;

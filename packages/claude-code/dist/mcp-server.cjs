@@ -32827,7 +32827,7 @@ function artifactTypeLabel(type) {
 var logger = (0, import_pino.default)({ level: "warn" }, import_pino.default.destination(2));
 var server = new McpServer({
   name: "sage",
-  version: "0.4.3"
+  version: "0.4.4"
 });
 var ARTIFACT_TYPE = external_exports.enum(["url", "command", "file_path"]).describe("Type of artifact: url, command, or file_path");
 function textResult(text, isError) {

@@ -14,7 +14,7 @@ export {
 	saveAllowlist,
 } from "./allowlist.js";
 // Audit log
-export { getRecentEntries, logPluginScan, logVerdict, rotateIfNeeded } from "./audit-log.js";
+export { getRecentEntries, logPluginScan, logVerdict } from "./audit-log.js";
 // Cache
 export { VerdictCache } from "./cache.js";
 export type { FileCheckBatchResult, FileCheckResult } from "./clients/file-check.js";
