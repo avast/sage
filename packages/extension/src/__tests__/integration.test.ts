@@ -8,13 +8,13 @@ type HookMode = "cursor" | "vscode";
 
 function runHook(
 	mode: HookMode,
-	input: Record<string, unknown> | string,
+	input: Record<string, unknown> | string | Buffer,
 ): Promise<{ stdout: string; stderr: string; code: number | null }> {
 	return new Promise((resolveRun) => {
 		const child = execFile("node", [SAGE_HOOK, mode], (error, stdout, stderr) => {
 			resolveRun({ stdout, stderr, code: error?.code ? Number(error.code) : child.exitCode });
 		});
-		const stdin = typeof input === "string" ? input : JSON.stringify(input);
+		const stdin = Buffer.isBuffer(input) ? input : typeof input === "string" ? input : JSON.stringify(input);
 		child.stdin?.end(stdin);
 	});
 }
@@ -36,6 +36,24 @@ describe("Cursor hook integration", () => {
 
 		expect(code).toBe(0);
 		expect(parseResponse(stdout)).toEqual({ decision: "allow" });
+	});
+
+	it("parses UTF-16LE stdin payloads (Windows hook launcher)", async () => {
+		const payload = {
+			hook_event_name: "preToolUse",
+			tool_name: "Write",
+			tool_input: {
+				file_path: "/home/user/.ssh/authorized_keys",
+				content: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQ...",
+			},
+		};
+
+		const { stdout, code } = await runHook("cursor", Buffer.from(JSON.stringify(payload), "utf16le"));
+
+		expect(code).toBe(0);
+		const response = parseResponse(stdout);
+		expect(response.decision).toBe("deny");
+		expect(typeof response.reason).toBe("string");
 	});
 
 	it("denies sensitive write in preToolUse", async () => {

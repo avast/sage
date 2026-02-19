@@ -508,23 +508,46 @@ function parseUnknownObject(value: unknown): Record<string, unknown> {
 }
 
 async function readStdinJson(): Promise<unknown> {
-	const raw = await new Promise<string>((resolve) => {
-		let content = "";
-		process.stdin.setEncoding("utf8");
+	// Cursor hooks on Windows can deliver stdin as UTF-16LE (PowerShell pipeline encoding),
+	// which breaks JSON.parse if we assume UTF-8. Read bytes and attempt both decodings.
+	const raw = await new Promise<Buffer>((resolve) => {
+		const chunks: Buffer[] = [];
 		process.stdin.on("data", (chunk) => {
-			content += chunk;
+			// Node normally gives Buffer chunks when no encoding is set, but be defensive.
+			chunks.push(typeof chunk === "string" ? Buffer.from(chunk, "utf8") : chunk);
 		});
-		process.stdin.on("end", () => resolve(content));
+		process.stdin.on("end", () => resolve(Buffer.concat(chunks)));
 	});
 
-	if (!raw.trim()) {
-		return {};
+	function stripBom(value: string): string {
+		return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
 	}
-	try {
-		return JSON.parse(raw);
-	} catch {
-		return {};
+
+	function tryParseJson(value: string): unknown | undefined {
+		const trimmed = stripBom(value).trim();
+		if (!trimmed) {
+			return {};
+		}
+		try {
+			return JSON.parse(trimmed);
+		} catch {
+			return undefined;
+		}
 	}
+
+	const asUtf8 = raw.toString("utf8");
+	const parsedUtf8 = tryParseJson(asUtf8);
+	if (parsedUtf8 !== undefined) {
+		return parsedUtf8;
+	}
+
+	const asUtf16le = raw.toString("utf16le");
+	const parsedUtf16le = tryParseJson(asUtf16le);
+	if (parsedUtf16le !== undefined) {
+		return parsedUtf16le;
+	}
+
+	return {};
 }
 
 function writeJson(payload: Record<string, unknown>): void {
