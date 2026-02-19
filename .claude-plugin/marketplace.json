@@ -2,7 +2,7 @@
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "sage",
   "description": "Security plugins for Claude Code by Gen Digital",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "owner": {
     "name": "Gen Digital"
   },
@@ -10,7 +10,7 @@
     {
       "name": "sage",
       "description": "Agent Detection & Response (ADR) for Claude Code — guards commands, files, and web requests",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "author": {
         "name": "Gen Digital"
       },

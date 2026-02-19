@@ -2023,7 +2023,7 @@ var require_thread_stream = __commonJS({
     var { version } = require_package();
     var { EventEmitter } = require("events");
     var { Worker } = require("worker_threads");
-    var { join: join4 } = require("path");
+    var { join: join5 } = require("path");
     var { pathToFileURL } = require("url");
     var { wait } = require_wait();
     var {
@@ -2059,7 +2059,7 @@ var require_thread_stream = __commonJS({
     function createWorker(stream, opts) {
       const { filename, workerData } = opts;
       const bundlerOverrides = "__bundlerPathsOverrides" in globalThis ? globalThis.__bundlerPathsOverrides : {};
-      const toExecute = bundlerOverrides["thread-stream-worker"] || join4(__dirname, "lib", "worker.js");
+      const toExecute = bundlerOverrides["thread-stream-worker"] || join5(__dirname, "lib", "worker.js");
       const worker = new Worker(toExecute, {
         ...opts.workerOpts,
         trackUnmanagedFds: false,
@@ -2445,7 +2445,7 @@ var require_transport = __commonJS({
     "use strict";
     var { createRequire } = require("module");
     var getCallers = require_caller();
-    var { join: join4, isAbsolute, sep } = require("node:path");
+    var { join: join5, isAbsolute, sep } = require("node:path");
     var sleep = require_atomic_sleep();
     var onExit = require_on_exit_leak_free();
     var ThreadStream = require_thread_stream();
@@ -2508,7 +2508,7 @@ var require_transport = __commonJS({
         throw new Error("only one of target or targets can be specified");
       }
       if (targets) {
-        target = bundlerOverrides["pino-worker"] || join4(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
         options.targets = targets.filter((dest) => dest.target).map((dest) => {
           return {
             ...dest,
@@ -2526,7 +2526,7 @@ var require_transport = __commonJS({
           });
         });
       } else if (pipeline) {
-        target = bundlerOverrides["pino-worker"] || join4(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
         options.pipelines = [pipeline.map((dest) => {
           return {
             ...dest,
@@ -2548,7 +2548,7 @@ var require_transport = __commonJS({
           return origin;
         }
         if (origin === "pino/file") {
-          return join4(__dirname, "..", "file.js");
+          return join5(__dirname, "..", "file.js");
         }
         let fixTarget2;
         for (const filePath of callers) {
@@ -3537,7 +3537,7 @@ var require_safe_stable_stringify = __commonJS({
               return circularValue;
             }
             let res = "";
-            let join4 = ",";
+            let join5 = ",";
             const originalIndentation = indentation;
             if (Array.isArray(value)) {
               if (value.length === 0) {
@@ -3551,7 +3551,7 @@ var require_safe_stable_stringify = __commonJS({
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join4 = `,
+                join5 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -3559,13 +3559,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join4;
+                res += join5;
               }
               const tmp = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join4}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -3586,7 +3586,7 @@ ${originalIndentation}`;
             let separator = "";
             if (spacer !== "") {
               indentation += spacer;
-              join4 = `,
+              join5 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -3600,13 +3600,13 @@ ${indentation}`;
               const tmp = stringifyFnReplacer(key2, value, stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join4;
+                separator = join5;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...":${whitespace}"${getItemCount(removedKeys)} not stringified"`;
-              separator = join4;
+              separator = join5;
             }
             if (spacer !== "" && separator.length > 1) {
               res = `
@@ -3647,7 +3647,7 @@ ${originalIndentation}`;
             }
             const originalIndentation = indentation;
             let res = "";
-            let join4 = ",";
+            let join5 = ",";
             if (Array.isArray(value)) {
               if (value.length === 0) {
                 return "[]";
@@ -3660,7 +3660,7 @@ ${originalIndentation}`;
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join4 = `,
+                join5 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -3668,13 +3668,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join4;
+                res += join5;
               }
               const tmp = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join4}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -3687,7 +3687,7 @@ ${originalIndentation}`;
             let whitespace = "";
             if (spacer !== "") {
               indentation += spacer;
-              join4 = `,
+              join5 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -3696,7 +3696,7 @@ ${indentation}`;
               const tmp = stringifyArrayReplacer(key2, value[key2], stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join4;
+                separator = join5;
               }
             }
             if (spacer !== "" && separator.length > 1) {
@@ -3754,20 +3754,20 @@ ${originalIndentation}`;
               indentation += spacer;
               let res2 = `
 ${indentation}`;
-              const join5 = `,
+              const join6 = `,
 ${indentation}`;
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
               let i = 0;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyIndent(String(i), value[i], stack, spacer, indentation);
                 res2 += tmp2 !== void 0 ? tmp2 : "null";
-                res2 += join5;
+                res2 += join6;
               }
               const tmp = stringifyIndent(String(i), value[i], stack, spacer, indentation);
               res2 += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res2 += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
+                res2 += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               res2 += `
 ${originalIndentation}`;
@@ -3783,16 +3783,16 @@ ${originalIndentation}`;
               return '"[Object]"';
             }
             indentation += spacer;
-            const join4 = `,
+            const join5 = `,
 ${indentation}`;
             let res = "";
             let separator = "";
             let maximumPropertiesToStringify = Math.min(keyLength, maximumBreadth);
             if (isTypedArrayWithEntries(value)) {
-              res += stringifyTypedArray(value, join4, maximumBreadth);
+              res += stringifyTypedArray(value, join5, maximumBreadth);
               keys = keys.slice(value.length);
               maximumPropertiesToStringify -= value.length;
-              separator = join4;
+              separator = join5;
             }
             if (deterministic) {
               keys = sort(keys, comparator);
@@ -3803,13 +3803,13 @@ ${indentation}`;
               const tmp = stringifyIndent(key2, value[key2], stack, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}: ${tmp}`;
-                separator = join4;
+                separator = join5;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...": "${getItemCount(removedKeys)} not stringified"`;
-              separator = join4;
+              separator = join5;
             }
             if (separator !== "") {
               res = `
@@ -11647,9 +11647,17 @@ function getFileContent(path, encoding = "utf-8") {
 async function atomicWriteJson(path, data) {
   await fsPromises.mkdir((0, import_node_path.dirname)(path), { recursive: true });
   const tmp = `${path}.${(0, import_node_crypto.randomBytes)(6).toString("hex")}.tmp`;
-  await fsPromises.writeFile(tmp, `${JSON.stringify(data, null, 2)}
+  try {
+    await fsPromises.writeFile(tmp, `${JSON.stringify(data, null, 2)}
 `, { mode: 384 });
-  await fsPromises.rename(tmp, path);
+    await fsPromises.rename(tmp, path);
+  } catch (err) {
+    try {
+      await fsPromises.unlink(tmp);
+    } catch {
+    }
+    throw err;
+  }
 }
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
@@ -15744,7 +15752,9 @@ var AllowlistConfigSchema = external_exports.object({
 var LoggingConfigSchema = external_exports.object({
   enabled: external_exports.boolean().default(true),
   log_clean: external_exports.boolean().default(false),
-  path: external_exports.string().default("~/.sage/audit.jsonl")
+  path: external_exports.string().default("~/.sage/audit.jsonl"),
+  max_bytes: external_exports.number().int().min(0).default(5 * 1024 * 1024),
+  max_files: external_exports.number().int().min(0).default(3)
 });
 var FileCheckConfigSchema = external_exports.object({
   endpoint: external_exports.string().optional(),

@@ -3,10 +3,10 @@
  */
 
 import { createHash } from "node:crypto";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
-import { getFileContent } from "./file-utils.js";
+import { join } from "node:path";
+import { atomicWriteJson, getFileContent } from "./file-utils.js";
 import type {
 	CachedPluginScanResult,
 	Logger,
@@ -90,7 +90,6 @@ export async function saveScanCache(
 	logger: Logger = nullLogger,
 ): Promise<void> {
 	try {
-		await mkdir(dirname(cachePath), { recursive: true });
 		const data = {
 			config_hash: cache.configHash,
 			entries: Object.fromEntries(
@@ -105,7 +104,7 @@ export async function saveScanCache(
 				]),
 			),
 		};
-		await writeFile(cachePath, JSON.stringify(data, null, 2));
+		await atomicWriteJson(cachePath, data);
 	} catch (e) {
 		logger.warn(`Failed to save scan cache to ${cachePath}`, { error: String(e) });
 	}

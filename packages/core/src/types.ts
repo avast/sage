@@ -174,6 +174,12 @@ export const LoggingConfigSchema = z.object({
 	enabled: z.boolean().default(true),
 	log_clean: z.boolean().default(false),
 	path: z.string().default("~/.sage/audit.jsonl"),
+	max_bytes: z
+		.number()
+		.int()
+		.min(0)
+		.default(5 * 1024 * 1024),
+	max_files: z.number().int().min(0).default(3),
 });
 
 export const FileCheckConfigSchema = z.object({

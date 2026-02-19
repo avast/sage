@@ -1,7 +1,7 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { getRecentEntries, logPluginScan, logVerdict } from "../audit-log.js";
+import { getRecentEntries, logPluginScan, logVerdict, rotateIfNeeded } from "../audit-log.js";
 import type { LoggingConfig, Verdict } from "../types.js";
 import { makeTmpDir } from "./test-utils.js";
 
@@ -10,6 +10,8 @@ function makeConfig(dir: string, overrides: Partial<LoggingConfig> = {}): Loggin
 		enabled: true,
 		log_clean: false,
 		path: join(dir, "audit.jsonl"),
+		max_bytes: 5 * 1024 * 1024,
+		max_files: 3,
 		...overrides,
 	};
 }
@@ -120,6 +122,23 @@ describe("logVerdict", () => {
 		const entry = JSON.parse(content.trim());
 		expect(entry.tool_input_summary).toBe("http://evil.com");
 	});
+
+	it("triggers rotation through appendEntry", async () => {
+		const config = makeConfig(dir, { max_bytes: 50, max_files: 2 });
+		// Write enough to exceed 50 bytes
+		await logVerdict(config, "s1", "Bash", { command: "x".repeat(100) }, makeVerdict());
+
+		// First entry created the file. Now a second write should trigger rotation.
+		await logVerdict(config, "s2", "Bash", { command: "y" }, makeVerdict());
+
+		// .1 should exist with old content
+		const rotated = await readFile(`${config.path}.1`, "utf-8");
+		expect(rotated).toContain("s1");
+
+		// Active file should have the new entry
+		const active = await readFile(config.path, "utf-8");
+		expect(active).toContain("s2");
+	});
 });
 
 describe("logPluginScan", () => {
@@ -152,5 +171,87 @@ describe("getRecentEntries", () => {
 		const config = makeConfig(dir);
 		const entries = await getRecentEntries(config);
 		expect(entries).toEqual([]);
+	});
+});
+
+describe("rotateIfNeeded", () => {
+	let dir: string;
+	let filePath: string;
+
+	beforeEach(async () => {
+		dir = await makeTmpDir();
+		filePath = join(dir, "test.log");
+	});
+
+	it("does not rotate when file is smaller than maxBytes", async () => {
+		await writeFile(filePath, "small");
+		await rotateIfNeeded(filePath, 1024, 3);
+
+		// File should still exist as-is, no .1 created
+		const content = await readFile(filePath, "utf-8");
+		expect(content).toBe("small");
+		await expect(stat(`${filePath}.1`)).rejects.toThrow();
+	});
+
+	it("rotates when file >= maxBytes", async () => {
+		const original = "x".repeat(100);
+		await writeFile(filePath, original);
+		await rotateIfNeeded(filePath, 50, 3);
+
+		// .1 should have old content
+		const rotated = await readFile(`${filePath}.1`, "utf-8");
+		expect(rotated).toBe(original);
+
+		// Active file should not exist (rotation only renames, doesn't create new)
+		await expect(stat(filePath)).rejects.toThrow();
+	});
+
+	it("chains rotations: oldest dropped beyond maxFiles", async () => {
+		// Create .1, .2, .3 manually
+		await writeFile(`${filePath}.1`, "gen1");
+		await writeFile(`${filePath}.2`, "gen2");
+		await writeFile(`${filePath}.3`, "gen3");
+		await writeFile(filePath, "x".repeat(100));
+
+		await rotateIfNeeded(filePath, 50, 3);
+
+		// .3 should now contain what was .2
+		const f3 = await readFile(`${filePath}.3`, "utf-8");
+		expect(f3).toBe("gen2");
+
+		// .2 should contain what was .1
+		const f2 = await readFile(`${filePath}.2`, "utf-8");
+		expect(f2).toBe("gen1");
+
+		// .1 should contain the active file content
+		const f1 = await readFile(`${filePath}.1`, "utf-8");
+		expect(f1).toBe("x".repeat(100));
+
+		// Old .3 ("gen3") was deleted
+		// .4 should not exist
+		await expect(stat(`${filePath}.4`)).rejects.toThrow();
+	});
+
+	it("max_bytes: 0 disables rotation", async () => {
+		await writeFile(filePath, "x".repeat(100));
+		await rotateIfNeeded(filePath, 0, 3);
+
+		const content = await readFile(filePath, "utf-8");
+		expect(content).toBe("x".repeat(100));
+		await expect(stat(`${filePath}.1`)).rejects.toThrow();
+	});
+
+	it("max_files: 0 disables rotation", async () => {
+		await writeFile(filePath, "x".repeat(100));
+		await rotateIfNeeded(filePath, 50, 0);
+
+		const content = await readFile(filePath, "utf-8");
+		expect(content).toBe("x".repeat(100));
+		await expect(stat(`${filePath}.1`)).rejects.toThrow();
+	});
+
+	it("handles nonexistent file gracefully", async () => {
+		// Should not throw
+		await rotateIfNeeded(join(dir, "nonexistent.log"), 50, 3);
 	});
 });

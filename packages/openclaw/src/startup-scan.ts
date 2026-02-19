@@ -18,6 +18,8 @@ import {
 	loadTrustedDomains,
 	logPluginScan,
 	type PluginScanResult,
+	pruneOrphanedTmpFiles,
+	resolvePath,
 	saveScanCache,
 	scanPlugin,
 	storeResult,
@@ -34,6 +36,8 @@ const SAGE_PLUGIN_ID = "sage-openclaw";
  * found, or null if everything is clean.
  */
 async function runScan(logger: Logger, context: string): Promise<string | null> {
+	await pruneOrphanedTmpFiles(resolvePath("~/.sage"));
+
 	const { threatsDir, allowlistsDir } = getBundledDataDirs();
 	const version = getSageVersion();
 	logger.info(`Sage plugin scan started (${context})`, { threatsDir, allowlistsDir });

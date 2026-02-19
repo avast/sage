@@ -2,7 +2,7 @@
   "name": "sage-cursor-extension",
   "displayName": "Sage for Cursor",
   "description": "Safety for Agents — ADR layer for Cursor Agent",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "private": true,
   "publisher": "gen-digital",
   "repository": {

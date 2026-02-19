@@ -9312,7 +9312,7 @@ var require_thread_stream = __commonJS({
     var { version } = require_package();
     var { EventEmitter } = require("events");
     var { Worker } = require("worker_threads");
-    var { join: join7 } = require("path");
+    var { join: join8 } = require("path");
     var { pathToFileURL } = require("url");
     var { wait } = require_wait();
     var {
@@ -9348,7 +9348,7 @@ var require_thread_stream = __commonJS({
     function createWorker(stream, opts) {
       const { filename, workerData } = opts;
       const bundlerOverrides = "__bundlerPathsOverrides" in globalThis ? globalThis.__bundlerPathsOverrides : {};
-      const toExecute = bundlerOverrides["thread-stream-worker"] || join7(__dirname, "lib", "worker.js");
+      const toExecute = bundlerOverrides["thread-stream-worker"] || join8(__dirname, "lib", "worker.js");
       const worker = new Worker(toExecute, {
         ...opts.workerOpts,
         trackUnmanagedFds: false,
@@ -9734,7 +9734,7 @@ var require_transport = __commonJS({
     "use strict";
     var { createRequire } = require("module");
     var getCallers = require_caller();
-    var { join: join7, isAbsolute, sep } = require("node:path");
+    var { join: join8, isAbsolute, sep } = require("node:path");
     var sleep = require_atomic_sleep();
     var onExit = require_on_exit_leak_free();
     var ThreadStream = require_thread_stream();
@@ -9797,7 +9797,7 @@ var require_transport = __commonJS({
         throw new Error("only one of target or targets can be specified");
       }
       if (targets) {
-        target = bundlerOverrides["pino-worker"] || join7(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join8(__dirname, "worker.js");
         options.targets = targets.filter((dest) => dest.target).map((dest) => {
           return {
             ...dest,
@@ -9815,7 +9815,7 @@ var require_transport = __commonJS({
           });
         });
       } else if (pipeline) {
-        target = bundlerOverrides["pino-worker"] || join7(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join8(__dirname, "worker.js");
         options.pipelines = [pipeline.map((dest) => {
           return {
             ...dest,
@@ -9837,7 +9837,7 @@ var require_transport = __commonJS({
           return origin;
         }
         if (origin === "pino/file") {
-          return join7(__dirname, "..", "file.js");
+          return join8(__dirname, "..", "file.js");
         }
         let fixTarget2;
         for (const filePath of callers) {
@@ -10826,7 +10826,7 @@ var require_safe_stable_stringify = __commonJS({
               return circularValue;
             }
             let res = "";
-            let join7 = ",";
+            let join8 = ",";
             const originalIndentation = indentation;
             if (Array.isArray(value)) {
               if (value.length === 0) {
@@ -10840,7 +10840,7 @@ var require_safe_stable_stringify = __commonJS({
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join7 = `,
+                join8 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -10848,13 +10848,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join7;
+                res += join8;
               }
               const tmp = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join7}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join8}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -10875,7 +10875,7 @@ ${originalIndentation}`;
             let separator = "";
             if (spacer !== "") {
               indentation += spacer;
-              join7 = `,
+              join8 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -10889,13 +10889,13 @@ ${indentation}`;
               const tmp = stringifyFnReplacer(key2, value, stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join7;
+                separator = join8;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...":${whitespace}"${getItemCount(removedKeys)} not stringified"`;
-              separator = join7;
+              separator = join8;
             }
             if (spacer !== "" && separator.length > 1) {
               res = `
@@ -10936,7 +10936,7 @@ ${originalIndentation}`;
             }
             const originalIndentation = indentation;
             let res = "";
-            let join7 = ",";
+            let join8 = ",";
             if (Array.isArray(value)) {
               if (value.length === 0) {
                 return "[]";
@@ -10949,7 +10949,7 @@ ${originalIndentation}`;
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join7 = `,
+                join8 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -10957,13 +10957,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join7;
+                res += join8;
               }
               const tmp = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join7}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join8}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -10976,7 +10976,7 @@ ${originalIndentation}`;
             let whitespace = "";
             if (spacer !== "") {
               indentation += spacer;
-              join7 = `,
+              join8 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -10985,7 +10985,7 @@ ${indentation}`;
               const tmp = stringifyArrayReplacer(key2, value[key2], stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join7;
+                separator = join8;
               }
             }
             if (spacer !== "" && separator.length > 1) {
@@ -11043,20 +11043,20 @@ ${originalIndentation}`;
               indentation += spacer;
               let res2 = `
 ${indentation}`;
-              const join8 = `,
+              const join9 = `,
 ${indentation}`;
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
               let i = 0;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyIndent(String(i), value[i], stack, spacer, indentation);
                 res2 += tmp2 !== void 0 ? tmp2 : "null";
-                res2 += join8;
+                res2 += join9;
               }
               const tmp = stringifyIndent(String(i), value[i], stack, spacer, indentation);
               res2 += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res2 += `${join8}"... ${getItemCount(removedKeys)} not stringified"`;
+                res2 += `${join9}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               res2 += `
 ${originalIndentation}`;
@@ -11072,16 +11072,16 @@ ${originalIndentation}`;
               return '"[Object]"';
             }
             indentation += spacer;
-            const join7 = `,
+            const join8 = `,
 ${indentation}`;
             let res = "";
             let separator = "";
             let maximumPropertiesToStringify = Math.min(keyLength, maximumBreadth);
             if (isTypedArrayWithEntries(value)) {
-              res += stringifyTypedArray(value, join7, maximumBreadth);
+              res += stringifyTypedArray(value, join8, maximumBreadth);
               keys = keys.slice(value.length);
               maximumPropertiesToStringify -= value.length;
-              separator = join7;
+              separator = join8;
             }
             if (deterministic) {
               keys = sort(keys, comparator);
@@ -11092,13 +11092,13 @@ ${indentation}`;
               const tmp = stringifyIndent(key2, value[key2], stack, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}: ${tmp}`;
-                separator = join7;
+                separator = join8;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...": "${getItemCount(removedKeys)} not stringified"`;
-              separator = join7;
+              separator = join8;
             }
             if (separator !== "") {
               res = `
@@ -11644,9 +11644,17 @@ function getFileContent(path, encoding = "utf-8") {
 async function atomicWriteJson(path, data) {
   await fsPromises.mkdir((0, import_node_path.dirname)(path), { recursive: true });
   const tmp = `${path}.${(0, import_node_crypto.randomBytes)(6).toString("hex")}.tmp`;
-  await fsPromises.writeFile(tmp, `${JSON.stringify(data, null, 2)}
+  try {
+    await fsPromises.writeFile(tmp, `${JSON.stringify(data, null, 2)}
 `, { mode: 384 });
-  await fsPromises.rename(tmp, path);
+    await fsPromises.rename(tmp, path);
+  } catch (err) {
+    try {
+      await fsPromises.unlink(tmp);
+    } catch {
+    }
+    throw err;
+  }
 }
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
@@ -15741,7 +15749,9 @@ var AllowlistConfigSchema = external_exports.object({
 var LoggingConfigSchema = external_exports.object({
   enabled: external_exports.boolean().default(true),
   log_clean: external_exports.boolean().default(false),
-  path: external_exports.string().default("~/.sage/audit.jsonl")
+  path: external_exports.string().default("~/.sage/audit.jsonl"),
+  max_bytes: external_exports.number().int().min(0).default(5 * 1024 * 1024),
+  max_files: external_exports.number().int().min(0).default(3)
 });
 var FileCheckConfigSchema = external_exports.object({
   endpoint: external_exports.string().optional(),
@@ -15919,6 +15929,40 @@ function toolInputSummary(toolName, toolInput) {
   }
   return JSON.stringify(toolInput).slice(0, MAX_SUMMARY_LEN);
 }
+async function rotateIfNeeded(filePath, maxBytes, maxFiles) {
+  if (maxBytes <= 0 || maxFiles <= 0)
+    return;
+  let size;
+  try {
+    const s = await (0, import_promises.stat)(filePath);
+    size = s.size;
+  } catch {
+    return;
+  }
+  if (size < maxBytes)
+    return;
+  try {
+    await (0, import_promises.unlink)(`${filePath}.${maxFiles}`);
+  } catch {
+  }
+  for (let i = maxFiles - 1; i >= 1; i--) {
+    try {
+      await (0, import_promises.rename)(`${filePath}.${i}`, `${filePath}.${i + 1}`);
+    } catch {
+    }
+  }
+  try {
+    await (0, import_promises.rename)(filePath, `${filePath}.1`);
+  } catch {
+  }
+}
+async function appendEntry(config, entry) {
+  const path = resolvePath(config.path);
+  await (0, import_promises.mkdir)((0, import_node_path4.dirname)(path), { recursive: true });
+  await rotateIfNeeded(path, config.max_bytes, config.max_files);
+  await (0, import_promises.appendFile)(path, `${JSON.stringify(entry)}
+`);
+}
 async function logVerdict(config, sessionId, toolName, toolInput, verdict, userOverride = false) {
   if (!config.enabled)
     return;
@@ -15937,11 +15981,8 @@ async function logVerdict(config, sessionId, toolName, toolInput, verdict, userO
     source: verdict.source,
     user_override: userOverride
   };
-  const path = resolvePath(config.path);
   try {
-    await (0, import_promises.mkdir)((0, import_node_path4.dirname)(path), { recursive: true });
-    await (0, import_promises.appendFile)(path, `${JSON.stringify(entry)}
-`);
+    await appendEntry(config, entry);
   } catch {
   }
 }

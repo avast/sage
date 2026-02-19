@@ -12,6 +12,8 @@ import {
 	formatSessionStartFindings,
 	type Logger,
 	type PluginScanResult,
+	pruneOrphanedTmpFiles,
+	resolvePath,
 	runSessionStartScan,
 } from "@sage/core";
 import pino from "pino";
@@ -45,6 +47,7 @@ function getPluginManifest(pluginRoot: string): { name: string | null; version: 
 
 async function main(): Promise<void> {
 	await pruneStaleSessionFiles(logger);
+	await pruneOrphanedTmpFiles(resolvePath("~/.sage"));
 
 	const pluginRoot = getPluginRoot();
 	const threatsDir = join(pluginRoot, "threats");

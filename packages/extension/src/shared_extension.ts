@@ -6,6 +6,7 @@ import {
 	checkForUpdate,
 	getRecentEntries,
 	loadConfig,
+	pruneOrphanedTmpFiles,
 	resolvePath,
 } from "@sage/core";
 import * as vscode from "vscode";
@@ -32,6 +33,9 @@ export function activateManagedHooksExtension(
 	context: vscode.ExtensionContext,
 	target: ExtensionTarget,
 ): void {
+	// Best-effort cleanup of orphaned .tmp files from crashed atomic writes
+	pruneOrphanedTmpFiles(resolvePath("~/.sage")).catch(() => {});
+
 	const version = (context.extension.packageJSON as Record<string, unknown>).version as string;
 	if (version) {
 		checkForUpdate(version)
