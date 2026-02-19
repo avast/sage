@@ -14,7 +14,11 @@ function runHook(
 		const child = execFile("node", [SAGE_HOOK, mode], (error, stdout, stderr) => {
 			resolveRun({ stdout, stderr, code: error?.code ? Number(error.code) : child.exitCode });
 		});
-		const stdin = Buffer.isBuffer(input) ? input : typeof input === "string" ? input : JSON.stringify(input);
+		const stdin = Buffer.isBuffer(input)
+			? input
+			: typeof input === "string"
+				? input
+				: JSON.stringify(input);
 		child.stdin?.end(stdin);
 	});
 }
@@ -48,7 +52,10 @@ describe("Cursor hook integration", () => {
 			},
 		};
 
-		const { stdout, code } = await runHook("cursor", Buffer.from(JSON.stringify(payload), "utf16le"));
+		const { stdout, code } = await runHook(
+			"cursor",
+			Buffer.from(JSON.stringify(payload), "utf16le"),
+		);
 
 		expect(code).toBe(0);
 		const response = parseResponse(stdout);
