@@ -177,7 +177,7 @@ describe("RegistryClient", () => {
 			expect(result?.latestHash).toBe("pypi-sha256-hash");
 			expect(result?.hashAlgorithm).toBe("sha256");
 			// First release should be the earliest
-			expect(result?.firstReleaseDate?.getFullYear()).toBe(2012);
+			expect(result?.firstReleaseDate?.getUTCFullYear()).toBe(2012);
 		});
 
 		it("returns null on 404", async () => {
