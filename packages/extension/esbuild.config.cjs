@@ -6,7 +6,7 @@ const pkg = JSON.parse(readFileSync("../core/package.json", "utf-8"));
 const shared = {
 	bundle: true,
 	platform: "node",
-	target: "node22",
+	target: "node18",
 	format: "cjs",
 	sourcemap: true,
 	define: { __SAGE_VERSION__: JSON.stringify(pkg.version) },

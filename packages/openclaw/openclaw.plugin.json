@@ -1,7 +1,7 @@
 {
   "id": "sage",
   "name": "Sage",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Safety for Agents — ADR layer that guards commands, files, and web requests",
   "skills": [
     "resources/skills/security-awareness"

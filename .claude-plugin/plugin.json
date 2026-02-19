@@ -1,6 +1,6 @@
 {
   "name": "sage",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Safety for Agents - Agent Detection & Response (ADR) for Claude Code",
   "author": {
     "name": "Gen Digital"
@@ -17,7 +17,9 @@
   "mcpServers": {
     "sage": {
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/packages/claude-code/dist/mcp-server.cjs"]
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/packages/claude-code/dist/mcp-server.cjs"
+      ]
     }
   }
 }

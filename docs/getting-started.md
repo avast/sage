@@ -4,7 +4,7 @@ Sage supports three platforms: Claude Code, Cursor/VS Code, and OpenClaw. Pick t
 
 ## Prerequisites
 
-- **Node.js >= 22** (for Claude Code and OpenClaw; not required for Cursor/VS Code)
+- **Node.js >= 18** (for Claude Code and OpenClaw; not required for Cursor/VS Code)
 - **pnpm** (for building from source)
 
 ## Claude Code

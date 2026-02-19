@@ -1,5 +1,9 @@
 # Claude Code
 
+## Prerequisites
+
+- **Node.js >= 18** — Sage hooks run as Node.js scripts, so `node` must be available in PATH.
+
 ## Installation
 
 From the Claude Code prompt:
