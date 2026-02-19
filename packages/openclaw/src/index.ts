@@ -22,7 +22,7 @@ interface PluginApi {
 }
 
 export default {
-	id: "sage",
+	id: "sage-openclaw",
 	name: "Sage",
 	description: "Safety for Agents — ADR layer that guards commands, files, and web requests",
 	configSchema: {

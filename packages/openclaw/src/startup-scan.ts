@@ -27,7 +27,7 @@ import {
 import { getBundledDataDirs, getSageVersion } from "./bundled-dirs.js";
 import { discoverOpenClawPlugins } from "./plugin-discovery.js";
 
-const SAGE_PLUGIN_ID = "sage";
+const SAGE_PLUGIN_ID = "sage-openclaw";
 
 /**
  * Run a full plugin scan. Returns the formatted findings banner if threats were
