@@ -73,7 +73,7 @@ const E2E_CASES: readonly E2ECase[] = [
 const HOST_METADATA: Record<HostName, HostMetadata> = {
 	cursor: {
 		label: "Cursor",
-		extensionId: "gen-digital.sage-cursor-extension",
+		extensionId: "Gen.sage-cursor-extension",
 		scopeSettingKey: "sage.cursor.scope",
 		managedMarker: "--managed-by sage-cursor-extension",
 		hookMode: "cursor",
@@ -81,7 +81,7 @@ const HOST_METADATA: Record<HostName, HostMetadata> = {
 	},
 	vscode: {
 		label: "VS Code",
-		extensionId: "gen-digital.sage-vscode-extension",
+		extensionId: "Gen.sage-vscode-extension",
 		scopeSettingKey: "sage.vscode.scope",
 		managedMarker: "--managed-by sage-vscode-extension",
 		hookMode: "vscode",
@@ -395,7 +395,7 @@ function defaultExecutableCandidates(host: HostName): string[] {
 			pushIfDefined(
 				candidates,
 				process.env.LOCALAPPDATA &&
-					path.join(process.env.LOCALAPPDATA, "Programs", "Cursor", "Cursor.exe"),
+				path.join(process.env.LOCALAPPDATA, "Programs", "Cursor", "Cursor.exe"),
 			);
 			pushIfDefined(
 				candidates,
@@ -420,27 +420,27 @@ function defaultExecutableCandidates(host: HostName): string[] {
 		pushIfDefined(
 			candidates,
 			process.env.LOCALAPPDATA &&
-				path.join(process.env.LOCALAPPDATA, "Programs", "Microsoft VS Code", "Code.exe"),
+			path.join(process.env.LOCALAPPDATA, "Programs", "Microsoft VS Code", "Code.exe"),
 		);
 		pushIfDefined(
 			candidates,
 			process.env.LOCALAPPDATA &&
-				path.join(
-					process.env.LOCALAPPDATA,
-					"Programs",
-					"Microsoft VS Code Insiders",
-					"Code - Insiders.exe",
-				),
+			path.join(
+				process.env.LOCALAPPDATA,
+				"Programs",
+				"Microsoft VS Code Insiders",
+				"Code - Insiders.exe",
+			),
 		);
 		pushIfDefined(
 			candidates,
 			process.env.ProgramFiles &&
-				path.join(process.env.ProgramFiles, "Microsoft VS Code", "Code.exe"),
+			path.join(process.env.ProgramFiles, "Microsoft VS Code", "Code.exe"),
 		);
 		pushIfDefined(
 			candidates,
 			process.env["ProgramFiles(x86)"] &&
-				path.join(process.env["ProgramFiles(x86)"], "Microsoft VS Code", "Code.exe"),
+			path.join(process.env["ProgramFiles(x86)"], "Microsoft VS Code", "Code.exe"),
 		);
 		candidates.push(...resolveWindowsVsCodeExecutablesFromWhere());
 	}
