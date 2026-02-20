@@ -395,7 +395,7 @@ function defaultExecutableCandidates(host: HostName): string[] {
 			pushIfDefined(
 				candidates,
 				process.env.LOCALAPPDATA &&
-				path.join(process.env.LOCALAPPDATA, "Programs", "Cursor", "Cursor.exe"),
+					path.join(process.env.LOCALAPPDATA, "Programs", "Cursor", "Cursor.exe"),
 			);
 			pushIfDefined(
 				candidates,
@@ -420,27 +420,27 @@ function defaultExecutableCandidates(host: HostName): string[] {
 		pushIfDefined(
 			candidates,
 			process.env.LOCALAPPDATA &&
-			path.join(process.env.LOCALAPPDATA, "Programs", "Microsoft VS Code", "Code.exe"),
+				path.join(process.env.LOCALAPPDATA, "Programs", "Microsoft VS Code", "Code.exe"),
 		);
 		pushIfDefined(
 			candidates,
 			process.env.LOCALAPPDATA &&
-			path.join(
-				process.env.LOCALAPPDATA,
-				"Programs",
-				"Microsoft VS Code Insiders",
-				"Code - Insiders.exe",
-			),
+				path.join(
+					process.env.LOCALAPPDATA,
+					"Programs",
+					"Microsoft VS Code Insiders",
+					"Code - Insiders.exe",
+				),
 		);
 		pushIfDefined(
 			candidates,
 			process.env.ProgramFiles &&
-			path.join(process.env.ProgramFiles, "Microsoft VS Code", "Code.exe"),
+				path.join(process.env.ProgramFiles, "Microsoft VS Code", "Code.exe"),
 		);
 		pushIfDefined(
 			candidates,
 			process.env["ProgramFiles(x86)"] &&
-			path.join(process.env["ProgramFiles(x86)"], "Microsoft VS Code", "Code.exe"),
+				path.join(process.env["ProgramFiles(x86)"], "Microsoft VS Code", "Code.exe"),
 		);
 		candidates.push(...resolveWindowsVsCodeExecutablesFromWhere());
 	}
