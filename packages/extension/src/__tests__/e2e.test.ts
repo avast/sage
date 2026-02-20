@@ -73,7 +73,7 @@ const E2E_CASES: readonly E2ECase[] = [
 const HOST_METADATA: Record<HostName, HostMetadata> = {
 	cursor: {
 		label: "Cursor",
-		extensionId: "gen-digital.sage-cursor-extension",
+		extensionId: "Gen.sage-cursor-extension",
 		scopeSettingKey: "sage.cursor.scope",
 		managedMarker: "--managed-by sage-cursor-extension",
 		hookMode: "cursor",
@@ -81,7 +81,7 @@ const HOST_METADATA: Record<HostName, HostMetadata> = {
 	},
 	vscode: {
 		label: "VS Code",
-		extensionId: "gen-digital.sage-vscode-extension",
+		extensionId: "Gen.sage-vscode-extension",
 		scopeSettingKey: "sage.vscode.scope",
 		managedMarker: "--managed-by sage-vscode-extension",
 		hookMode: "vscode",

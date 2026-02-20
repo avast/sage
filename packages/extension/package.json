@@ -4,7 +4,7 @@
   "description": "Safety for Agents — ADR layer for Cursor Agent",
   "version": "0.4.4",
   "private": true,
-  "publisher": "gen-digital",
+  "publisher": "Gen",
   "repository": {
     "type": "git",
     "url": "https://github.com/avast/sage.git"
