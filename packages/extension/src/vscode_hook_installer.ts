@@ -10,7 +10,7 @@ import type {
 	ManagedHookScope,
 } from "./managedHooks.js";
 
-const MANAGED_MARKER = "--managed-by sage-vscode-extension";
+const MANAGED_MARKER = "--managed-by sage-vscode";
 
 type HookCommandEntry = Record<string, unknown> & { command?: string };
 type HookMatcherEntry = Record<string, unknown> & { hooks?: HookCommandEntry[] };

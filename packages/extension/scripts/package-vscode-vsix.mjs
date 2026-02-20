@@ -8,7 +8,7 @@ const extensionRoot = resolve(scriptDir, "..");
 const repoRoot = resolve(extensionRoot, "..", "..");
 
 const stageDir = join(extensionRoot, ".vsce", "vscode_extension");
-const outputVsix = join(repoRoot, "sage-vscode-extension.vsix");
+const outputVsix = join(repoRoot, "sage-vscode.vsix");
 
 const baseManifest = JSON.parse(await readFile(join(extensionRoot, "package.json"), "utf8"));
 const vscodeManifest = buildVsCodeManifest(baseManifest);
@@ -28,7 +28,7 @@ await runVscePackage(stageDir, outputVsix);
 
 function buildVsCodeManifest(base) {
 	const manifest = { ...base };
-	manifest.name = "sage-vscode-extension";
+	manifest.name = "sage-vscode";
 	manifest.displayName = "Sage for VS Code";
 	manifest.description = "Safety for Agents — ADR layer for VS Code Claude hooks";
 	manifest.main = "./dist/vscode_extension.js";

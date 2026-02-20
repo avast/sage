@@ -27,7 +27,7 @@ pnpm install
 pnpm -C packages/extension run package:cursor:vsix
 ```
 
-Install the resulting `sage-cursor-extension.vsix` via the Extensions panel (`Extensions > Install from VSIX`). Then run `Sage: Enable Protection` from the command palette (`Ctrl+Shift+P`).
+Install the resulting `sage-cursor.vsix` via the Extensions panel (`Extensions > Install from VSIX`). Then run `Sage: Enable Protection` from the command palette (`Ctrl+Shift+P`).
 
 ## VS Code
 
@@ -38,7 +38,7 @@ pnpm install
 pnpm -C packages/extension run package:vscode:vsix
 ```
 
-Install the resulting `sage-vscode-extension.vsix` via the Extensions panel. Then enable protection from the command palette.
+Install the resulting `sage-vscode.vsix` via the Extensions panel. Then enable protection from the command palette.
 
 > **Tip:** To build both VSIX packages at once, use `pnpm -C packages/extension run package:vsix`.
 

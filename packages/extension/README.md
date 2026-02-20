@@ -18,8 +18,8 @@ Extension E2E tests run in real IDE hosts and require installed Cursor / VS Code
 
 Packaged VSIX files are written to:
 
-- `sage-cursor-extension.vsix`
-- `sage-vscode-extension.vsix`
+- `sage-cursor.vsix`
+- `sage-vscode.vsix`
 
 ## Commands
 

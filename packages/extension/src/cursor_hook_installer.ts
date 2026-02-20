@@ -10,7 +10,7 @@ import type {
 	ManagedHookScope,
 } from "./managedHooks.js";
 
-const MANAGED_MARKER = "--managed-by sage-cursor-extension";
+const MANAGED_MARKER = "--managed-by sage-cursor";
 
 type HookEntry = Record<string, unknown> & { command?: string };
 type HookMap = Record<string, HookEntry[]>;
