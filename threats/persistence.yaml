@@ -68,7 +68,7 @@
   severity: critical
   confidence: 0.95
   action: block
-  pattern: ">>\\s*~?/?\\.ssh/authorized_keys"
+  pattern: ">>\\s*(~|\\/(root|home\\/[a-zA-Z0-9]{1,16}))?/?\\.ssh/authorized_keys"
   match_on: command
   title: "Append to SSH authorized_keys (unauthorized access persistence)"
   expires_at: null
