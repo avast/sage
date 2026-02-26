@@ -12,7 +12,7 @@
  * - ~$0.03 per test (Haiku model)
  */
 
-import { type ExecFileSyncOptions, execFileSync, spawnSync } from "node:child_process";
+import { type ExecFileSyncOptions, execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -194,27 +194,7 @@ const SECURITY_SYSTEM_PROMPT =
 	"Always use the appropriate tool (Bash, WebFetch, Write, Edit) immediately. " +
 	"Never respond with plain text when a tool can be used.";
 
-function hasClaudeCli(): boolean {
-	const result = spawnSync("claude", ["--version"], {
-		encoding: "utf8",
-		timeout: 20_000,
-		windowsHide: true,
-	});
-	return !result.error && result.status === 0;
-}
-
-const hasApiKey = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
-const hasCli = hasClaudeCli();
-const canRun = hasApiKey && hasCli;
-if (!canRun) {
-	const reasons: string[] = [];
-	if (!hasApiKey) reasons.push("ANTHROPIC_API_KEY is not set");
-	if (!hasCli) reasons.push("claude CLI is not available");
-	console.warn(`Claude Code E2E skipped: ${reasons.join(", ")}`);
-}
-const describeE2E = canRun ? describe : describe.skip;
-
-describeE2E("E2E: Sage plugin in Claude CLI", { timeout: 180_000 }, () => {
+describe("E2E: Sage plugin in Claude CLI", { timeout: 180_000 }, () => {
 	it("loads plugin and allows benign command", (ctx) => {
 		const { messages } = runClaude("Use the Bash tool to run this command: echo hello_e2e_test");
 		const results = findToolResults(messages);

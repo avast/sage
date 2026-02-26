@@ -189,7 +189,7 @@ export async function scanPlugin(
 
 	// Only run command-type heuristics on plugin files
 	const commandThreats = threats.filter((t) => t.matchOn.has("command"));
-	const heuristics = new HeuristicsEngine(commandThreats, trustedDomains, logger);
+	const heuristics = new HeuristicsEngine(commandThreats, trustedDomains);
 
 	const allUrls: string[] = [];
 	const hashToFiles = new Map<string, string[]>();

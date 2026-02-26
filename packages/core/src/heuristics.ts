@@ -7,8 +7,6 @@ import { extractDomain, isTrustedDomain } from "./trusted-domains.js";
 import {
 	type Artifact,
 	type HeuristicMatch,
-	type Logger,
-	nullLogger,
 	type Threat,
 	type TrustedDomain,
 } from "./types.js";
@@ -25,7 +23,7 @@ export class HeuristicsEngine {
 	private readonly threatMap: Map<string, Threat[]> = new Map();
 	private readonly trustedDomains: TrustedDomain[];
 
-	constructor(threats: Threat[], trustedDomains?: TrustedDomain[], _logger: Logger = nullLogger) {
+	constructor(threats: Threat[], trustedDomains?: TrustedDomain[]) {
 		this.trustedDomains = trustedDomains ?? [];
 
 		for (const threat of threats) {

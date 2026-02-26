@@ -1,5 +1,5 @@
 /**
- * Bridges OpenClaw's PluginLogger to Sage's Logger interface.
+ * Bridges OpenCode's client logger to Sage's Logger interface.
  */
 
 import type { PluginInput } from "@opencode-ai/plugin";

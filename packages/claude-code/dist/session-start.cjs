@@ -16237,7 +16237,7 @@ var TRUSTED_DOMAIN_SUPPRESSIBLE = /* @__PURE__ */ new Set([
 var HeuristicsEngine = class {
   threatMap = /* @__PURE__ */ new Map();
   trustedDomains;
-  constructor(threats, trustedDomains, _logger = nullLogger) {
+  constructor(threats, trustedDomains) {
     this.trustedDomains = trustedDomains ?? [];
     for (const threat of threats) {
       for (const matchType of threat.matchOn) {
@@ -16701,7 +16701,7 @@ async function scanPlugin(plugin, threats, options = {}) {
   if (files.length === 0)
     return result;
   const commandThreats = threats.filter((t) => t.matchOn.has("command"));
-  const heuristics = new HeuristicsEngine(commandThreats, trustedDomains, logger2);
+  const heuristics = new HeuristicsEngine(commandThreats, trustedDomains);
   const allUrls = [];
   const hashToFiles = /* @__PURE__ */ new Map();
   for (const filePath of files) {

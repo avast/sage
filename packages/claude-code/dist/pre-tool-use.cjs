@@ -16869,7 +16869,7 @@ var TRUSTED_DOMAIN_SUPPRESSIBLE = /* @__PURE__ */ new Set([
 var HeuristicsEngine = class {
   threatMap = /* @__PURE__ */ new Map();
   trustedDomains;
-  constructor(threats, trustedDomains, _logger = nullLogger) {
+  constructor(threats, trustedDomains) {
     this.trustedDomains = trustedDomains ?? [];
     for (const threat of threats) {
       for (const matchType of threat.matchOn) {

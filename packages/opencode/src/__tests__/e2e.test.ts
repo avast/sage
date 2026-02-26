@@ -11,7 +11,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -213,8 +213,7 @@ describe("E2E: Sage plugin in OpenCode", { timeout: 60_000 }, () => {
 		expect(firstRun.error).toBeUndefined();
 
 		const cachePath = join(tmpDir, ".sage", "plugin_scan_cache.json");
-		const cacheExists = require("node:fs").existsSync(cachePath);
-		if (cacheExists) {
+		if (existsSync(cachePath)) {
 			const cacheContent = readFileSync(cachePath, "utf8");
 			expect(cacheContent).toContain("cached-plugin");
 		}
