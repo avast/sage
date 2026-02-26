@@ -9,7 +9,7 @@ pnpm install
 pnpm -C packages/extension run package:cursor:vsix
 ```
 
-This produces `sage-cursor-extension.vsix` in the repo root. Install it via `Extensions > Install from VSIX`.
+This produces `sage-cursor.vsix` in the repo root. Install it via `Extensions > Install from VSIX`.
 
 ### VS Code
 
@@ -18,7 +18,7 @@ pnpm install
 pnpm -C packages/extension run package:vscode:vsix
 ```
 
-This produces `sage-vscode-extension.vsix` in the repo root. Install it via `Extensions > Install from VSIX`.
+This produces `sage-vscode.vsix` in the repo root. Install it via `Extensions > Install from VSIX`.
 
 > **Tip:** To build both VSIX packages at once, use `pnpm -C packages/extension run package:vsix`.
 

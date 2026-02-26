@@ -73,17 +73,17 @@ const E2E_CASES: readonly E2ECase[] = [
 const HOST_METADATA: Record<HostName, HostMetadata> = {
 	cursor: {
 		label: "Cursor",
-		extensionId: "Gen.sage-cursor-extension",
+		extensionId: "Gen.sage-cursor",
 		scopeSettingKey: "sage.cursor.scope",
-		managedMarker: "--managed-by sage-cursor-extension",
+		managedMarker: "--managed-by sage-cursor",
 		hookMode: "cursor",
 		hooksRelativePath: ".cursor/hooks.json",
 	},
 	vscode: {
 		label: "VS Code",
-		extensionId: "Gen.sage-vscode-extension",
+		extensionId: "Gen.sage-vscode",
 		scopeSettingKey: "sage.vscode.scope",
-		managedMarker: "--managed-by sage-vscode-extension",
+		managedMarker: "--managed-by sage-vscode",
 		hookMode: "vscode",
 		hooksRelativePath: ".claude/settings.json",
 	},
@@ -575,7 +575,7 @@ function dedupe(values: string[]): string[] {
 }
 
 function createVsCodeExtensionDevelopmentPath(): string {
-	const stageDir = mkdtempSync(path.join(tmpdir(), "sage-vscode-extension-e2e-"));
+	const stageDir = mkdtempSync(path.join(tmpdir(), "sage-vscode-e2e-"));
 	const baseManifest = readManifest(path.join(EXTENSION_ROOT, "package.json"));
 	const vscodeManifest = buildVsCodeManifest(baseManifest);
 
@@ -606,7 +606,7 @@ function buildVsCodeManifest(baseManifest: Record<string, unknown>): Record<stri
 	const baseContributes = asObject(baseManifest.contributes);
 	return {
 		...baseManifest,
-		name: "sage-vscode-extension",
+		name: "sage-vscode",
 		displayName: "Sage for VS Code",
 		description: "Safety for Agents — ADR layer for VS Code Claude hooks",
 		main: "./dist/vscode_extension.js",

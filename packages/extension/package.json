@@ -1,10 +1,11 @@
 {
-  "name": "sage-cursor-extension",
-  "displayName": "Sage for Cursor",
-  "description": "Safety for Agents — ADR layer for Cursor Agent",
+  "name": "sage-cursor",
+  "displayName": "Gen Sage",
+  "description": "Safety for Agents — protects AI agent tool calls against dangerous commands, malicious URLs, and harmful file writes.",
   "version": "0.4.4",
   "private": true,
   "publisher": "Gen",
+  "icon": "sage-icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/avast/sage.git"
@@ -29,6 +30,7 @@
     "dist/sage-hook.cjs",
     "dist/sage-hook.cjs.map",
     "resources/**",
+    "sage-icon.png",
     "package.json",
     "README.md",
     "LICENSE"
@@ -84,7 +86,7 @@
     "pretest": "pnpm -C ../core build && npm run sync:assets && node esbuild.config.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "package:cursor:vsix": "npm run build && pnpm dlx @vscode/vsce package -o ../../sage-cursor-extension.vsix --no-dependencies --allow-package-secrets github --allow-package-secrets slack",
+    "package:cursor:vsix": "npm run build && pnpm dlx @vscode/vsce package -o ../../sage-cursor.vsix --no-dependencies --allow-package-secrets github --allow-package-secrets slack",
     "package:vscode:vsix": "npm run build && node scripts/package-vscode-vsix.mjs",
     "package:vsix": "npm run package:cursor:vsix && npm run package:vscode:vsix"
   },
