@@ -24,7 +24,7 @@ import { getBundledDataDirs } from "./bundled-dirs.js";
 import { formatApprovalSuccess } from "./format.js";
 import { OpencodeLogger } from "./logger-adaptor.js";
 import { createSessionScanHandler } from "./startup-scan.js";
-import { createToolHanlders } from "./tool-handler.js";
+import { createToolHandlers } from "./tool-handler.js";
 
 const APPROVAL_STORE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -44,7 +44,7 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 
 	const ARTIFACT_TYPE = tool.schema.enum(["url", "command", "file_path"]);
 
-	const toolHanlders = createToolHanlders(logger, approvalStore, threatsDir, allowlistsDir);
+	const toolHanlders = createToolHandlers(logger, approvalStore, threatsDir, allowlistsDir);
 
 	return {
 		"tool.execute.before": toolHanlders["tool.execute.before"],

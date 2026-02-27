@@ -9,7 +9,7 @@ import { ApprovalStore } from "./approval-store.js";
 import { extractFromOpenCodeTool } from "./extractors.js";
 import { artifactTypeLabel, formatAskMessage, formatDenyMessage } from "./format.js";
 
-export const createToolHanlders = (
+export const createToolHandlers = (
 	logger: Logger,
 	approvalStore: ApprovalStore,
 	threatsDir: string,
