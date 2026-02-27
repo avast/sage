@@ -1,0 +1,49 @@
+{
+  "name": "@sage/opencode",
+  "license": "Apache-2.0",
+  "version": "0.4.4",
+  "type": "module",
+  "description": "Safety for Agents - ADR layer for OpenCode",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**",
+    "resources/**",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "pnpm -C ../core build && pnpm run clean && pnpm run sync:assets && tsc",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true});require('node:fs').rmSync('resources',{recursive:true,force:true});require('node:fs').rmSync('tsconfig.tsbuildinfo',{force:true})\"",
+    "sync:assets": "node scripts/sync-assets.mjs",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.2.10",
+    "@sage/core": "workspace:*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "security",
+    "adr",
+    "agent-security",
+    "safety",
+    "malware-detection"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

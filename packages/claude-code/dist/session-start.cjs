@@ -16630,38 +16630,38 @@ async function discoverPlugins(registryPath = DEFAULT_PLUGINS_REGISTRY, logger2 
 }
 async function walkPluginFiles(installPath, logger2) {
   const files = [];
-  async function walk(dir) {
-    let entries;
+  async function walk(dirOrFile) {
+    let stats;
     try {
-      entries = await (0, import_promises5.readdir)(dir);
+      stats = await (0, import_promises5.stat)(dirOrFile);
     } catch {
       return;
     }
-    for (const entry of entries) {
-      if (SKIP_DIRS.has(entry))
-        continue;
-      const fullPath = (0, import_node_path7.join)(dir, entry);
-      let stats;
-      try {
-        stats = await (0, import_promises5.stat)(fullPath);
-      } catch {
-        continue;
+    if (stats.isFile()) {
+      if (SCANNABLE_EXTENSIONS.has((0, import_node_path7.extname)(dirOrFile).toLowerCase()) && stats.size <= MAX_FILE_SIZE) {
+        files.push(dirOrFile);
       }
-      if (stats.isDirectory()) {
+      return;
+    }
+    if (stats.isDirectory()) {
+      let entries;
+      try {
+        entries = await (0, import_promises5.readdir)(dirOrFile);
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        if (SKIP_DIRS.has(entry))
+          continue;
+        const fullPath = (0, import_node_path7.join)(dirOrFile, entry);
         await walk(fullPath);
-      } else if (stats.isFile()) {
-        if (!SCANNABLE_EXTENSIONS.has((0, import_node_path7.extname)(fullPath).toLowerCase()))
-          continue;
-        if (stats.size > MAX_FILE_SIZE)
-          continue;
-        files.push(fullPath);
       }
     }
   }
   try {
     await walk(installPath);
   } catch (e) {
-    logger2.warn(`Error walking plugin directory ${installPath}`, { error: String(e) });
+    logger2.warn(`Error walking plugin path ${installPath}`, { error: String(e) });
   }
   return files;
 }
