@@ -51,15 +51,15 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 		"tool.execute.after": toolHanlders["tool.execute.after"],
 
 		/**
-			* Inject plugin scan findings into first user message as <system-reminder>.
-			* This approach leverages OpenCode's existing pattern of appending system
-			* reminders to user messages (e.g., plan mode constraints), enabling the
-			* agent to reason about security findings before tool execution. Appending
-			* to assistant messages or system prompts was less effective.
-		*/
-		"experimental.chat.messages.transform": async (input, output) => {
+		 * Inject plugin scan findings into first user message as <system-reminder>.
+		 * This approach leverages OpenCode's existing pattern of appending system
+		 * reminders to user messages (e.g., plan mode constraints), enabling the
+		 * agent to reason about security findings before tool execution. Appending
+		 * to assistant messages or system prompts was less effective.
+		 */
+		"experimental.chat.messages.transform": async (_input, output) => {
 			if (!pendingFindings) return;
-			const userMessage = output.messages.filter(m => m.info.role === "user");
+			const userMessage = output.messages.filter((m) => m.info.role === "user");
 
 			const message = userMessage[0];
 			if (!message) return; // We append the scan result to the first user message
@@ -76,11 +76,13 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 					"Inform the user about these security findings.",
 					`<system-reminder>`,
 				].join("\n"),
-				synthetic: true  // Mark as synthetic/injected
+				synthetic: true, // Mark as synthetic/injected
 			};
 			message.parts.push(textPart);
 
-			logger.info(`Injected sage plugin scan findings to user message`, { findings: pendingFindings});
+			logger.info(`Injected sage plugin scan findings to user message`, {
+				findings: pendingFindings,
+			});
 			pendingFindings = null;
 		},
 

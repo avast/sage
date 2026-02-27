@@ -4,12 +4,7 @@
 
 import { extractUrls } from "./extractors.js";
 import { extractDomain, isTrustedDomain } from "./trusted-domains.js";
-import {
-	type Artifact,
-	type HeuristicMatch,
-	type Threat,
-	type TrustedDomain,
-} from "./types.js";
+import type { Artifact, HeuristicMatch, Threat, TrustedDomain } from "./types.js";
 
 /** Threat IDs where trusted installer domains suppress matches. */
 const TRUSTED_DOMAIN_SUPPRESSIBLE = new Set([
