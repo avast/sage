@@ -10,4 +10,6 @@ export function setup() {
 	// Build extension manually (its build script uses corepack which may not be available)
 	run("node scripts/sync-assets.mjs", "packages/extension");
 	run("node esbuild.config.cjs", "packages/extension");
+	// Build opencode plugin bundle used by integration tests
+	run("pnpm --filter @sage/opencode run build");
 }

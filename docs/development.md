@@ -20,9 +20,10 @@ Requires Node.js >= 18 and pnpm >= 9.
 | `pnpm test -- --reporter=verbose` | Verbose test output |
 | `pnpm test -- <file>` | Run a single test file |
 | `pnpm test -- -t "name"` | Run tests matching name |
-| `pnpm test:e2e` | All E2E tests (Claude Code + OpenClaw + Cursor + VS Code) |
+| `pnpm test:e2e` | All E2E tests (Claude Code + OpenClaw + OpenCode + Cursor + VS Code) |
 | `pnpm test:e2e:claude` | Claude Code E2E tests only |
 | `pnpm test:e2e:openclaw` | OpenClaw E2E tests only |
+| `pnpm test:e2e:opencode` | OpenCode E2E tests only |
 | `pnpm test:e2e:cursor` | Cursor extension E2E tests only |
 | `pnpm test:e2e:vscode` | VS Code extension E2E tests only |
 | `pnpm build:sea` | Build standalone SEA binaries |
@@ -36,13 +37,14 @@ Requires Node.js >= 18 and pnpm >= 9.
 | Tier | Scope | Files | Requires |
 |------|-------|-------|----------|
 | Unit | Core library | `packages/core/src/__tests__/*.test.ts` | dev deps only |
-| Integration | Hook/plugin entry points | `packages/claude-code/src/__tests__/`, `packages/openclaw/src/__tests__/e2e-integration.test.ts` | dev deps only |
+| Integration | Hook/plugin entry points | `packages/claude-code/src/__tests__/`, `packages/openclaw/src/__tests__/e2e-integration.test.ts`, `packages/opencode/src/__tests__/integration.test.ts` | dev deps only |
 | E2E (Claude Code) | Full plugin in Claude CLI | `packages/claude-code/src/__tests__/e2e.test.ts` | `claude` CLI + `ANTHROPIC_API_KEY` |
 | E2E (OpenClaw) | Full plugin in OpenClaw gateway | `packages/openclaw/src/__tests__/e2e.test.ts` | OpenClaw gateway + `OPENCLAW_GATEWAY_TOKEN` |
+| E2E (OpenCode) | OpenCode CLI smoke test | `packages/opencode/src/__tests__/e2e.test.ts` | OpenCode CLI executable |
 | E2E (Cursor extension) | Sage extension in Cursor Extension Host | `packages/extension/src/__tests__/e2e.test.ts` | Installed Cursor executable |
 | E2E (VS Code extension) | Sage extension in VS Code Extension Host | `packages/extension/src/__tests__/e2e.test.ts` | Installed VS Code executable |
 
-`pnpm test` runs unit and integration tests. E2E is excluded — run separately with `pnpm test:e2e` (all), `pnpm test:e2e:claude`, `pnpm test:e2e:openclaw`, `pnpm test:e2e:cursor`, or `pnpm test:e2e:vscode`.
+`pnpm test` runs unit and integration tests. E2E is excluded — run separately with `pnpm test:e2e` (all), `pnpm test:e2e:claude`, `pnpm test:e2e:openclaw`, `pnpm test:e2e:opencode`, `pnpm test:e2e:cursor`, or `pnpm test:e2e:vscode`.
 
 **Claude Code E2E prerequisites:** `claude` CLI in PATH, valid `ANTHROPIC_API_KEY`, and Sage must **not** be installed via the Claude Code marketplace (duplicate-plugin conflict with `--plugin-dir`).
 
@@ -136,6 +138,7 @@ sage/
 │   ├── core/           @sage/core - detection engine
 │   ├── claude-code/    @sage/claude-code - Claude Code hooks
 │   ├── openclaw/       sage - OpenClaw connector
+│   ├── opencode/       @sage/opencode - OpenCode plugin
 │   └── extension/      Cursor and VS Code extensions
 ├── threats/            YAML threat definitions
 ├── allowlists/         Trusted domain allowlists

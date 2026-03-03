@@ -87,41 +87,43 @@ export async function discoverPlugins(
 async function walkPluginFiles(installPath: string, logger: Logger): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(dir: string): Promise<void> {
-		let entries: string[];
+	async function walk(dirOrFile: string): Promise<void> {
+		let stats: Awaited<ReturnType<typeof stat>>;
 		try {
-			entries = await readdir(dir);
+			stats = await stat(dirOrFile);
 		} catch {
 			return;
 		}
-
-		for (const entry of entries) {
-			if (SKIP_DIRS.has(entry)) continue;
-			const fullPath = join(dir, entry);
-
-			let stats: Awaited<ReturnType<typeof stat>>;
-			try {
-				stats = await stat(fullPath);
-			} catch {
-				continue;
+		// Handle file: check if scannable and add to results
+		if (stats.isFile()) {
+			if (
+				SCANNABLE_EXTENSIONS.has(extname(dirOrFile).toLowerCase()) &&
+				stats.size <= MAX_FILE_SIZE
+			) {
+				files.push(dirOrFile);
 			}
-
-			if (stats.isDirectory()) {
+			return;
+		}
+		// Handle directory: recursively walk entries
+		if (stats.isDirectory()) {
+			let entries: string[];
+			try {
+				entries = await readdir(dirOrFile);
+			} catch {
+				return;
+			}
+			for (const entry of entries) {
+				if (SKIP_DIRS.has(entry)) continue;
+				const fullPath = join(dirOrFile, entry);
 				await walk(fullPath);
-			} else if (stats.isFile()) {
-				if (!SCANNABLE_EXTENSIONS.has(extname(fullPath).toLowerCase())) continue;
-				if (stats.size > MAX_FILE_SIZE) continue;
-				files.push(fullPath);
 			}
 		}
 	}
-
 	try {
 		await walk(installPath);
 	} catch (e) {
-		logger.warn(`Error walking plugin directory ${installPath}`, { error: String(e) });
+		logger.warn(`Error walking plugin path ${installPath}`, { error: String(e) });
 	}
-
 	return files;
 }
 

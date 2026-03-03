@@ -108,6 +108,24 @@ importers:
         specifier: ^4.0.0
         version: 4.0.18(@types/node@22.19.11)(yaml@2.8.2)
 
+  packages/opencode:
+    devDependencies:
+      '@opencode-ai/plugin':
+        specifier: ^1.2.10
+        version: 1.2.10
+      '@sage/core':
+        specifier: workspace:*
+        version: link:../core
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.11
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@types/node@22.19.11)(yaml@2.8.2)
+
 packages:
 
   '@biomejs/biome@2.3.14':
@@ -497,6 +515,12 @@ packages:
     peerDependenciesMeta:
       '@cfworker/json-schema':
         optional: true
+
+  '@opencode-ai/plugin@1.2.10':
+    resolution: {integrity: sha512-Z1BMqNHnD8AGAEb+kUz0b2SOuiODwdQLdCA4aVGTXqkGzhiD44OVxr85MeoJ5AMTnnea9SnJ3jp9GAQ5riXA5g==}
+
+  '@opencode-ai/sdk@1.2.10':
+    resolution: {integrity: sha512-SyXcVqry2hitPVvQtvXOhqsWyFhSycG/+LTLYXrcq8AFmd9FR7dyBSDB3f5Ol6IPkYOegk8P2Eg2kKPNSNiKGw==}
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
@@ -1398,6 +1422,9 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zod@4.1.8:
+    resolution: {integrity: sha512-5R1P+WwQqmmMIEACyzSvo4JXHY5WiAFHRMg+zBZKgKS+Q1viRa0C1hmUKtHltoIFKtIdki3pRxkmpP74jnNYHQ==}
+
 snapshots:
 
   '@biomejs/biome@2.3.14':
@@ -1618,6 +1645,13 @@ snapshots:
       zod-to-json-schema: 3.25.1(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
+
+  '@opencode-ai/plugin@1.2.10':
+    dependencies:
+      '@opencode-ai/sdk': 1.2.10
+      zod: 4.1.8
+
+  '@opencode-ai/sdk@1.2.10': {}
 
   '@pinojs/redact@0.4.0': {}
 
@@ -2497,3 +2531,5 @@ snapshots:
       zod: 3.25.76
 
   zod@3.25.76: {}
+
+  zod@4.1.8: {}

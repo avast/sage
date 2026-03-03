@@ -12,6 +12,7 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:e2e:claude": "vitest run --config vitest.e2e.config.ts packages/claude-code",
     "test:e2e:openclaw": "vitest run --config vitest.e2e.config.ts packages/openclaw",
+    "test:e2e:opencode": "vitest run --config vitest.e2e.config.ts packages/opencode",
     "test:e2e:cursor": "vitest run --config vitest.e2e.config.ts packages/extension",
     "test:e2e:vscode": "vitest run --config vitest.e2e.config.ts packages/extension",
     "test:watch": "vitest",
