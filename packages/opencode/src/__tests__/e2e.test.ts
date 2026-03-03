@@ -43,7 +43,7 @@ function runOpenCode(
 ) {
 	return spawnSync(
 		OPENCODE_BIN,
-		[...args, "--format", "json", "--model", "openai/gpt-5.2", "--agent", "build"],
+		[...args, "--format", "json", "--agent", "build"],
 		{
 			encoding: "utf8",
 			timeout: options.timeout ?? 90_000,
