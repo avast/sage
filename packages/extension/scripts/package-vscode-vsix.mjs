@@ -58,6 +58,7 @@ function buildVsCodeManifest(base) {
 				},
 				"sage.hookRunnerPath": {
 					type: "string",
+					scope: "application",
 					default: "",
 					description: "Optional absolute path to a sage-hook runner script.",
 				},
@@ -70,9 +71,8 @@ function buildVsCodeManifest(base) {
 function runVscePackage(workingDirectory, outputPath) {
 	return new Promise((resolveRun, rejectRun) => {
 		const child = spawn(
-			"corepack",
+			"pnpm",
 			[
-				"pnpm",
 				"dlx",
 				"@vscode/vsce",
 				"package",

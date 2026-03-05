@@ -572,6 +572,73 @@ describe("Windows command threats", () => {
 		expect(ids.filter((id) => id === "CLT-WIN-CMD-038")).toEqual([]);
 	});
 
+	// --- Additional FP coverage ---
+
+	it("does not match Start-Process without executable extension (003 FP)", () => {
+		const ids = matchCommand(engine, 'Start-Process -FilePath "notepad"');
+		expect(ids).not.toContain("CLT-WIN-CMD-003");
+	});
+
+	it("does not match Get-BitsTransfer (006 FP)", () => {
+		const ids = matchCommand(engine, "Get-BitsTransfer");
+		expect(ids).not.toContain("CLT-WIN-CMD-006");
+	});
+
+	it("does not match Format-Table (019 FP)", () => {
+		const ids = matchCommand(engine, "Format-Table -Property Name,Value");
+		expect(ids).not.toContain("CLT-WIN-CMD-019");
+	});
+
+	it("does not match Set-ExecutionPolicy RemoteSigned (026 FP)", () => {
+		const ids = matchCommand(engine, "Set-ExecutionPolicy RemoteSigned");
+		expect(ids).not.toContain("CLT-WIN-CMD-026");
+	});
+
+	it("does not match Get-ExecutionPolicy (026 FP)", () => {
+		const ids = matchCommand(engine, "Get-ExecutionPolicy");
+		expect(ids).not.toContain("CLT-WIN-CMD-026");
+	});
+
+	it("does not match Remove-Item without -Recurse -Force (028 FP)", () => {
+		const ids = matchCommand(engine, "Remove-Item -Path .\\temp.txt");
+		expect(ids).not.toContain("CLT-WIN-CMD-028");
+	});
+
+	it("does not match Clear-RecycleBin without -Force (029 FP)", () => {
+		const ids = matchCommand(engine, "Clear-RecycleBin");
+		expect(ids).not.toContain("CLT-WIN-CMD-029");
+	});
+
+	it("does not match bcdedit /enum (033 FP)", () => {
+		const ids = matchCommand(engine, "bcdedit /enum");
+		expect(ids).not.toContain("CLT-WIN-CMD-033");
+	});
+
+	it("does not match Get-MpPreference (037 FP)", () => {
+		const ids = matchCommand(engine, "Get-MpPreference");
+		expect(ids).not.toContain("CLT-WIN-CMD-037");
+	});
+
+	it("does not match 7z archiving non-document wildcards (041 FP)", () => {
+		const ids = matchCommand(engine, "7z a backup.7z src/*.json");
+		expect(ids).not.toContain("CLT-WIN-CMD-041");
+	});
+
+	it("does not match zip without password for normal files (040 FP)", () => {
+		const ids = matchCommand(engine, "zip archive.zip src/*.ts");
+		expect(ids).not.toContain("CLT-WIN-CMD-040");
+	});
+
+	it("does not match netsh advfirewall show (039 FP)", () => {
+		const ids = matchCommand(engine, "netsh advfirewall show allprofiles state");
+		expect(ids).not.toContain("CLT-WIN-CMD-039");
+	});
+
+	it("does not match Get-EventLog (036 FP)", () => {
+		const ids = matchCommand(engine, "Get-EventLog -LogName Application -Newest 10");
+		expect(ids).not.toContain("CLT-WIN-CMD-036");
+	});
+
 	// --- Shadow copy/VSS/backup destruction (WIN-CMD-047) ---
 
 	it("detects vssadmin resize shadowstorage (WIN-CMD-047)", () => {

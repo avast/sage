@@ -126,4 +126,42 @@ describe("Windows persistence threats", () => {
 		const ids = matchCommand(engine, "Get-WmiObject -Class __EventFilter");
 		expect(ids.filter((id) => id === "CLT-WIN-PERSIST-008")).toEqual([]);
 	});
+
+	// --- Additional FP coverage ---
+
+	it("does not match reg query RunOnce (001 FP)", () => {
+		const ids = matchCommand(
+			engine,
+			"reg query HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce\\",
+		);
+		expect(ids).not.toContain("CLT-WIN-PERSIST-001");
+	});
+
+	it("does not match sc query service (002 FP)", () => {
+		const ids = matchCommand(engine, "sc query wuauserv");
+		expect(ids).not.toContain("CLT-WIN-PERSIST-002");
+	});
+
+	it("does not match schtasks /Delete (003 FP)", () => {
+		const ids = matchCommand(engine, "schtasks /Delete /tn OldTask /f");
+		expect(ids).not.toContain("CLT-WIN-PERSIST-003");
+	});
+
+	it("does not match Get-ScheduledTask (004 FP)", () => {
+		const ids = matchCommand(engine, "Get-ScheduledTask -TaskName MyTask");
+		expect(ids).not.toContain("CLT-WIN-PERSIST-004");
+	});
+
+	it("does not match Get-ItemProperty Run key (005 FP)", () => {
+		const ids = matchCommand(
+			engine,
+			"Get-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\'",
+		);
+		expect(ids).not.toContain("CLT-WIN-PERSIST-005");
+	});
+
+	it("does not match Get-Service (006 FP)", () => {
+		const ids = matchCommand(engine, "Get-Service -Name wuauserv");
+		expect(ids).not.toContain("CLT-WIN-PERSIST-006");
+	});
 });

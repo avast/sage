@@ -5,9 +5,12 @@
 ```bash
 git clone https://github.com/avast/sage
 cd sage
+git checkout pre-release
 pnpm install
 pnpm build
 ```
+
+Development happens on the `pre-release` branch. The `main` branch is the distribution channel (what users install). See [CONTRIBUTING.md](../CONTRIBUTING.md#branch-policy) for details.
 
 Requires Node.js >= 18 and pnpm >= 9.
 
@@ -30,7 +33,8 @@ Requires Node.js >= 18 and pnpm >= 9.
 | `pnpm lint` | Lint with Biome |
 | `pnpm lint:fix` | Lint + auto-fix |
 | `pnpm check` | Type check all packages |
-| `pnpm bump <version>` | Sync version across all manifests |
+| `pnpm changeset` | Create a changeset for your changes |
+| `pnpm run version` | Apply changesets: bump versions, generate changelogs, sync manifests |
 
 ## Test Tiers
 
@@ -41,7 +45,7 @@ Requires Node.js >= 18 and pnpm >= 9.
 | E2E (Claude Code) | Full plugin in Claude CLI | `packages/claude-code/src/__tests__/e2e.test.ts` | `claude` CLI + `ANTHROPIC_API_KEY` |
 | E2E (OpenClaw) | Full plugin in OpenClaw gateway | `packages/openclaw/src/__tests__/e2e.test.ts` | OpenClaw gateway + `OPENCLAW_GATEWAY_TOKEN` |
 | E2E (OpenCode) | OpenCode CLI smoke test | `packages/opencode/src/__tests__/e2e.test.ts` | OpenCode CLI executable |
-| E2E (Cursor extension) | Sage extension in Cursor Extension Host | `packages/extension/src/__tests__/e2e.test.ts` | Installed Cursor executable |
+| E2E (Cursor extension) | Sage extension in Cursor Extension Host | `packages/extension/src/__tests__/e2e.test.ts` | Installed Cursor executable (`agent` CLI required for headless Cursor-agent sub-suite) |
 | E2E (VS Code extension) | Sage extension in VS Code Extension Host | `packages/extension/src/__tests__/e2e.test.ts` | Installed VS Code executable |
 
 `pnpm test` runs unit and integration tests. E2E is excluded — run separately with `pnpm test:e2e` (all), `pnpm test:e2e:claude`, `pnpm test:e2e:openclaw`, `pnpm test:e2e:opencode`, `pnpm test:e2e:cursor`, or `pnpm test:e2e:vscode`.
@@ -55,6 +59,7 @@ The extension E2E tests run inside a real Extension Host process using installed
 **Prerequisites:**
 
 - Cursor E2E: installed Cursor executable
+- Cursor headless agent E2E: `agent` CLI in `PATH` (or `SAGE_AGENT_PATH`), authenticated via `agent login` or `CURSOR_API_KEY`
 - VS Code E2E: installed VS Code executable
 - Extension must be built (handled by Vitest `globalSetup`)
 
@@ -63,10 +68,13 @@ The extension E2E tests run inside a real Extension Host process using installed
 | Variable | Description |
 |----------|-------------|
 | `SAGE_CURSOR_PATH` | Absolute path to the Cursor executable |
+| `SAGE_AGENT_PATH` | Absolute path to the `agent` CLI used by Cursor headless E2E |
 | `SAGE_VSCODE_PATH` | Absolute path to the VS Code executable |
 | `VSCODE_EXECUTABLE_PATH` | Alternate VS Code executable override |
 
 If a requested host executable is unavailable, that host's E2E suite is skipped.
+If `agent` is unavailable or unauthenticated, the Cursor headless agent sub-suite is skipped and remaining Cursor host E2E tests still run.
+Extension hooks always exit with code `0`; the host reads the JSON response from stdout to determine the verdict.
 
 **Running the tests:**
 
@@ -112,7 +120,7 @@ Use OpenClaw's `OPENCLAW_EXTRA_MOUNTS` to mount the built Sage plugin into the g
 pnpm build
 
 # Set the mount and run setup (generates docker-compose.extra.yml)
-export OPENCLAW_EXTRA_MOUNTS="$PWD/packages/openclaw:/home/node/.openclaw/extensions/sage:ro"
+export OPENCLAW_EXTRA_MOUNTS="SAGE_PROJECT_DIR/packages/openclaw:/home/node/.openclaw/extensions/sage:ro"
 ./docker-setup.sh
 
 # If the gateway is already set up, re-run docker-setup.sh to regenerate
@@ -164,10 +172,30 @@ sage/
 ## Conventions
 
 - **Naming split:** YAML/JSON data uses `snake_case` (`threat_id`, `source_file`). TypeScript uses `camelCase` (`threatId`, `sourceFile`). Conversion functions handle the boundary.
-- **Fail-open:** Every error path must return an `allow` verdict. Hooks must always exit 0.
+- **Fail-open:** Every internal error path must return an `allow` verdict. Extension hooks always exit with code `0`.
 - **Detection patterns are data.** No hardcoded patterns - all rules live in `threats/*.yaml`.
-- **Versioning:** Use `pnpm bump <version>` to update all manifests at once. Never edit version strings by hand.
+- **Versioning:** See [Versioning](#versioning) below.
+
+## Versioning
+
+This project uses [Changesets](https://github.com/changesets/changesets) with **linked mode** — all four packages (`@sage/core`, `@sage/claude-code`, `@gendigital/sage-openclaw`, `sage-cursor`) sync versions when released together, but individual packages can be bumped independently.
+
+**Workflow:**
+
+1. Make your changes
+2. Run `pnpm changeset` — select affected packages and bump type (patch/minor/major)
+3. Commit the generated `.changeset/*.md` file alongside your code changes
+4. When ready to release: `pnpm run version` — applies all pending changesets, bumps `package.json` versions, generates per-package changelogs, and syncs non-standard manifests (`plugin.json`, `marketplace.json`, `openclaw.plugin.json`)
+5. Commit the version bumps and changelog updates
+
+**Non-standard manifest sync:** Changesets only knows about `package.json` files. The `pnpm run version` script automatically runs `scripts/sync-manifests.mjs` after `changeset version` to propagate versions to `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, and `packages/openclaw/openclaw.plugin.json`.
+
+**Pre-commit hook:** A `changeset-check` pre-commit hook warns when staged files affect shipped artifacts (source code, threat definitions, allowlists, hooks, skills, plugin manifests) without a corresponding changeset. Bypass with `git commit --no-verify`.
 
 ## Building the Extension
 
 See [Building the Extension](../doc/build_extension.md) for Cursor/VS Code VSIX packaging instructions.
+
+---
+
+**Gen Digital team:** See the sage-internal repo for leak prevention setup, release sync workflows, and pre-release audit instructions.

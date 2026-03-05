@@ -7,6 +7,36 @@ on:
     branches: [main]
 
 jobs:
+  gitleaks:
+    name: Leak Scan
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: "8.24.2"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write gitleaks config from secret
+        if: env.HAS_CONFIG == 'true'
+        run: echo "${{ secrets.GITLEAKS_CONFIG }}" | base64 -d > .gitleaks.toml
+        env:
+          HAS_CONFIG: ${{ secrets.GITLEAKS_CONFIG != '' }}
+      - name: Install gitleaks
+        if: env.HAS_CONFIG == 'true'
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar xz
+          sudo mv gitleaks /usr/local/bin/
+        env:
+          HAS_CONFIG: ${{ secrets.GITLEAKS_CONFIG != '' }}
+      - name: Scan for leaks
+        if: env.HAS_CONFIG == 'true'
+        run: gitleaks detect --source . --config .gitleaks.toml --no-git --verbose
+        env:
+          HAS_CONFIG: ${{ secrets.GITLEAKS_CONFIG != '' }}
+      - name: Skip notice
+        if: env.HAS_CONFIG != 'true'
+        run: echo "::notice::Gitleaks config secret not available (expected for fork PRs) — skipping leak scan"
+        env:
+          HAS_CONFIG: ${{ secrets.GITLEAKS_CONFIG != '' }}
+
   ci:
     name: Lint, Check, Build & Test
     runs-on: ubuntu-latest

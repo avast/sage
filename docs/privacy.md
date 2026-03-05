@@ -2,10 +2,16 @@
 
 ## What Data Is Sent
 
-Sage uses Gen Digital cloud services for two purposes:
+Sage uses Gen Digital cloud services for three purposes:
 
-1. **URL reputation** - URLs extracted from tool calls are sent to a reputation API for malware/phishing/scam classification.
-2. **File reputation** - Package hashes (SHA-256) from npm/PyPI registries are checked against a file reputation service.
+1. **URL reputation** — URLs extracted from tool calls are sent to a reputation API for malware/phishing/scam classification.
+2. **File reputation** — Package hashes (SHA-256) from npm/PyPI registries are checked against a file reputation service.
+3. **Version check** — On session start, Sage sends a POST request to a version-check endpoint with:
+   - Sage version
+   - Agent runtime (e.g. `claude-code`, `cursor`, `openclaw`, `opencode`, `vscode`)
+   - Agent runtime version (when available)
+   - OS, OS version, and architecture
+   - Installation ID — a random UUID persisted at `~/.sage/installation-id`, generated once and reused across sessions
 
 ## What Data Stays Local
 
@@ -17,7 +23,7 @@ Sage uses Gen Digital cloud services for two purposes:
 
 ## Configuration
 
-Both URL and file reputation checks can be disabled in `~/.sage/config.json`:
+URL and file reputation checks can be disabled in `~/.sage/config.json`:
 
 ```json
 {

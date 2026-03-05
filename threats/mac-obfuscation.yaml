@@ -1,0 +1,92 @@
+# macOS obfuscation threat patterns for Sage
+# Author: Gen Digital Inc.
+# License: DRL-1.1 (see threats/LICENSE)
+
+# osascript 'do shell script' wrapping (shell via AppleScript)
+- id: "CLT-MAC-OBFUS-001"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\bosascript\\b.*do shell script"
+  case_insensitive: true
+  match_on: command
+  title: "Shell command obfuscated via AppleScript do shell script"
+  expires_at: null
+  revoked: false
+
+# JXA (JavaScript for Automation) execution
+- id: "CLT-MAC-OBFUS-002"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\bosascript\\b.*-l\\s+JavaScript.*-e"
+  case_insensitive: true
+  match_on: command
+  title: "JXA inline execution (JavaScript for Automation obfuscation)"
+  expires_at: null
+  revoked: false
+
+# Base64 decode piped to osascript
+- id: "CLT-MAC-OBFUS-003"
+  category: tool
+  severity: critical
+  confidence: 0.95
+  action: block
+  pattern: "base64\\s+(-d|-D|--decode).*\\|.*osascript"
+  match_on: command
+  title: "Base64 decode piped to osascript (encoded payload execution)"
+  expires_at: null
+  revoked: false
+
+# DYLD_INSERT_LIBRARIES injection
+- id: "CLT-MAC-OBFUS-004"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "DYLD_INSERT_LIBRARIES=.*\\.(dylib|so)"
+  match_on: command
+  title: "Dynamic library injection via DYLD_INSERT_LIBRARIES"
+  expires_at: null
+  revoked: false
+
+# Quarantine attribute removal (evasion)
+- id: "CLT-MAC-OBFUS-005"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\bxattr\\b.*(-d|-c).*com\\.apple\\.quarantine"
+  match_on: command
+  title: "Quarantine attribute removal (Gatekeeper evasion)"
+  expires_at: null
+  revoked: false
+
+# Python encoded payload moved to obfuscation.yaml (CLT-OBFUS-008)
+
+# plutil plist manipulation (payload hiding)
+- id: "CLT-MAC-OBFUS-006"
+  category: tool
+  severity: high
+  confidence: 0.80
+  action: require_approval
+  pattern: "\\bplutil\\b.*-convert\\s+(binary1|raw)"
+  match_on: command
+  title: "Plist conversion to binary (payload obfuscation)"
+  expires_at: null
+  revoked: false
+
+# Swift/swiftc inline execution
+- id: "CLT-MAC-OBFUS-007"
+  category: tool
+  severity: high
+  confidence: 0.80
+  action: require_approval
+  pattern: "\\bswift\\b\\s+-e\\s+[\"'].*\\b(Process|NSTask|URLSession|shell)\\b"
+  case_insensitive: true
+  match_on: command
+  title: "Swift inline execution with system calls"
+  expires_at: null
+  revoked: false

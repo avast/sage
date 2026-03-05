@@ -23,6 +23,9 @@ packages/opencode/resources/
 # Logs
 *.log
 
+# Test artifacts
+.e2e-artifacts/
+
 # IDE / Editor
 .claude
 .cursor
@@ -34,3 +37,6 @@ packages/opencode/resources/
 
 # OS
 .DS_Store
+
+# Gitleaks config (contains internal infrastructure names)
+.gitleaks.toml

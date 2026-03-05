@@ -1,20 +1,11 @@
 /**
  * Formatting for Sage Claude Code alerts.
  * Shared formatting (severityEmoji, formatThreatBanner, etc.) lives in @sage/core.
- * This file keeps Claude Code-specific verdict formatting and re-exports shared utilities.
+ * This file keeps Claude Code-specific verdict formatting.
  */
 
 import type { Verdict } from "@sage/core";
-import {
-	formatStartupClean,
-	formatThreatBanner,
-	kv,
-	separatorLine,
-	severityEmoji,
-} from "@sage/core";
-
-// Re-export shared formatting so existing callers are unaffected
-export { formatStartupClean, formatThreatBanner, severityEmoji };
+import { kv, PAD, SEPARATOR_WIDTH, separatorLine, severityEmoji } from "@sage/core";
 
 export function artifactTypeLabel(type: string): string {
 	if (type === "url") return "URL";
@@ -22,9 +13,6 @@ export function artifactTypeLabel(type: string): string {
 	if (type === "file_path") return "file path";
 	return type;
 }
-
-const PAD = 12;
-const SEPARATOR_WIDTH = 48;
 
 /** Append category and artifact details to lines array. */
 function appendVerdictDetails(lines: string[], verdict: Verdict): void {

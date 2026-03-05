@@ -80,6 +80,35 @@ describe("RegistryClient", () => {
 			expect(result?.requestedVersionFound).toBe(true);
 		});
 
+		it("resolves dist-tag (e.g. @latest) to actual version", async () => {
+			globalThis.fetch = vi.fn().mockResolvedValue({
+				ok: true,
+				status: 200,
+				json: async () => ({
+					"dist-tags": { latest: "1.0.0", next: "2.0.0-beta.1" },
+					versions: {
+						"1.0.0": { dist: { shasum: "latest-hash" } },
+						"2.0.0-beta.1": { dist: { shasum: "next-hash" } },
+					},
+					time: { created: "2020-01-01T00:00:00.000Z" },
+				}),
+			});
+
+			const client = new RegistryClient();
+
+			const resultLatest = await client.getPackageMetadata("pkg", "npm", "latest");
+			expect(resultLatest).not.toBeNull();
+			expect(resultLatest?.resolvedVersion).toBe("1.0.0");
+			expect(resultLatest?.latestHash).toBe("latest-hash");
+			expect(resultLatest?.requestedVersionFound).toBe(true);
+
+			const resultNext = await client.getPackageMetadata("pkg", "npm", "next");
+			expect(resultNext).not.toBeNull();
+			expect(resultNext?.resolvedVersion).toBe("2.0.0-beta.1");
+			expect(resultNext?.latestHash).toBe("next-hash");
+			expect(resultNext?.requestedVersionFound).toBe(true);
+		});
+
 		it("falls back to latest when requested version missing", async () => {
 			globalThis.fetch = vi.fn().mockResolvedValue({
 				ok: true,

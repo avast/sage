@@ -2023,7 +2023,7 @@ var require_thread_stream = __commonJS({
     var { version } = require_package();
     var { EventEmitter } = require("events");
     var { Worker } = require("worker_threads");
-    var { join: join5 } = require("path");
+    var { join: join6 } = require("path");
     var { pathToFileURL } = require("url");
     var { wait } = require_wait();
     var {
@@ -2059,7 +2059,7 @@ var require_thread_stream = __commonJS({
     function createWorker(stream, opts) {
       const { filename, workerData } = opts;
       const bundlerOverrides = "__bundlerPathsOverrides" in globalThis ? globalThis.__bundlerPathsOverrides : {};
-      const toExecute = bundlerOverrides["thread-stream-worker"] || join5(__dirname, "lib", "worker.js");
+      const toExecute = bundlerOverrides["thread-stream-worker"] || join6(__dirname, "lib", "worker.js");
       const worker = new Worker(toExecute, {
         ...opts.workerOpts,
         trackUnmanagedFds: false,
@@ -2445,7 +2445,7 @@ var require_transport = __commonJS({
     "use strict";
     var { createRequire } = require("module");
     var getCallers = require_caller();
-    var { join: join5, isAbsolute, sep } = require("node:path");
+    var { join: join6, isAbsolute: isAbsolute2, sep: sep2 } = require("node:path");
     var sleep = require_atomic_sleep();
     var onExit = require_on_exit_leak_free();
     var ThreadStream = require_thread_stream();
@@ -2508,7 +2508,7 @@ var require_transport = __commonJS({
         throw new Error("only one of target or targets can be specified");
       }
       if (targets) {
-        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join6(__dirname, "worker.js");
         options.targets = targets.filter((dest) => dest.target).map((dest) => {
           return {
             ...dest,
@@ -2526,7 +2526,7 @@ var require_transport = __commonJS({
           });
         });
       } else if (pipeline) {
-        target = bundlerOverrides["pino-worker"] || join5(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join6(__dirname, "worker.js");
         options.pipelines = [pipeline.map((dest) => {
           return {
             ...dest,
@@ -2544,16 +2544,16 @@ var require_transport = __commonJS({
       return buildStream(fixTarget(target), options, worker, sync);
       function fixTarget(origin) {
         origin = bundlerOverrides[origin] || origin;
-        if (isAbsolute(origin) || origin.indexOf("file://") === 0) {
+        if (isAbsolute2(origin) || origin.indexOf("file://") === 0) {
           return origin;
         }
         if (origin === "pino/file") {
-          return join5(__dirname, "..", "file.js");
+          return join6(__dirname, "..", "file.js");
         }
         let fixTarget2;
         for (const filePath of callers) {
           try {
-            const context = filePath === "node:repl" ? process.cwd() + sep : filePath;
+            const context = filePath === "node:repl" ? process.cwd() + sep2 : filePath;
             fixTarget2 = createRequire(context).resolve(origin);
             break;
           } catch (err) {
@@ -3537,7 +3537,7 @@ var require_safe_stable_stringify = __commonJS({
               return circularValue;
             }
             let res = "";
-            let join5 = ",";
+            let join6 = ",";
             const originalIndentation = indentation;
             if (Array.isArray(value)) {
               if (value.length === 0) {
@@ -3551,7 +3551,7 @@ var require_safe_stable_stringify = __commonJS({
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join5 = `,
+                join6 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -3559,13 +3559,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join5;
+                res += join6;
               }
               const tmp = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -3586,7 +3586,7 @@ ${originalIndentation}`;
             let separator = "";
             if (spacer !== "") {
               indentation += spacer;
-              join5 = `,
+              join6 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -3600,13 +3600,13 @@ ${indentation}`;
               const tmp = stringifyFnReplacer(key2, value, stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join5;
+                separator = join6;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...":${whitespace}"${getItemCount(removedKeys)} not stringified"`;
-              separator = join5;
+              separator = join6;
             }
             if (spacer !== "" && separator.length > 1) {
               res = `
@@ -3647,7 +3647,7 @@ ${originalIndentation}`;
             }
             const originalIndentation = indentation;
             let res = "";
-            let join5 = ",";
+            let join6 = ",";
             if (Array.isArray(value)) {
               if (value.length === 0) {
                 return "[]";
@@ -3660,7 +3660,7 @@ ${originalIndentation}`;
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join5 = `,
+                join6 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -3668,13 +3668,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join5;
+                res += join6;
               }
               const tmp = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join5}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -3687,7 +3687,7 @@ ${originalIndentation}`;
             let whitespace = "";
             if (spacer !== "") {
               indentation += spacer;
-              join5 = `,
+              join6 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -3696,7 +3696,7 @@ ${indentation}`;
               const tmp = stringifyArrayReplacer(key2, value[key2], stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join5;
+                separator = join6;
               }
             }
             if (spacer !== "" && separator.length > 1) {
@@ -3754,20 +3754,20 @@ ${originalIndentation}`;
               indentation += spacer;
               let res2 = `
 ${indentation}`;
-              const join6 = `,
+              const join7 = `,
 ${indentation}`;
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
               let i = 0;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyIndent(String(i), value[i], stack, spacer, indentation);
                 res2 += tmp2 !== void 0 ? tmp2 : "null";
-                res2 += join6;
+                res2 += join7;
               }
               const tmp = stringifyIndent(String(i), value[i], stack, spacer, indentation);
               res2 += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res2 += `${join6}"... ${getItemCount(removedKeys)} not stringified"`;
+                res2 += `${join7}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               res2 += `
 ${originalIndentation}`;
@@ -3783,16 +3783,16 @@ ${originalIndentation}`;
               return '"[Object]"';
             }
             indentation += spacer;
-            const join5 = `,
+            const join6 = `,
 ${indentation}`;
             let res = "";
             let separator = "";
             let maximumPropertiesToStringify = Math.min(keyLength, maximumBreadth);
             if (isTypedArrayWithEntries(value)) {
-              res += stringifyTypedArray(value, join5, maximumBreadth);
+              res += stringifyTypedArray(value, join6, maximumBreadth);
               keys = keys.slice(value.length);
               maximumPropertiesToStringify -= value.length;
-              separator = join5;
+              separator = join6;
             }
             if (deterministic) {
               keys = sort(keys, comparator);
@@ -3803,13 +3803,13 @@ ${indentation}`;
               const tmp = stringifyIndent(key2, value[key2], stack, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}: ${tmp}`;
-                separator = join5;
+                separator = join6;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...": "${getItemCount(removedKeys)} not stringified"`;
-              separator = join5;
+              separator = join6;
             }
             if (separator !== "") {
               res = `
@@ -8283,10 +8283,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -8300,7 +8300,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep) {
+          if (!keyProps.anchor && !keyProps.tag && !sep2) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -8324,7 +8324,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep ?? [], {
+        const valueProps = resolveProps.resolveProps(sep2 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -8340,7 +8340,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep2, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -8431,7 +8431,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep = "";
+        let sep2 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -8445,13 +8445,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep + cb;
-              sep = "";
+                comment += sep2 + cb;
+              sep2 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep += source;
+                sep2 += source;
               hasSpace = true;
               break;
             default:
@@ -8494,18 +8494,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep && !value) {
+          if (!props.anchor && !props.tag && !sep2 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -8559,8 +8559,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap && !sep && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep, null, props, onError);
+        if (!isMap && !sep2 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep2, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -8572,7 +8572,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep ?? [], {
+          const valueProps = resolveProps.resolveProps(sep2 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -8583,8 +8583,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap && !props.found && ctx.options.strict) {
-              if (sep)
-                for (const st of sep) {
+              if (sep2)
+                for (const st of sep2) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -8601,7 +8601,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep2, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -8781,7 +8781,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep = "";
+      let sep2 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart; ++i)
         value += lines[i][0].slice(trimIndent) + "\n";
@@ -8798,24 +8798,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep === " ")
-            sep = "\n";
-          else if (!prevMoreIndented && sep === "\n")
-            sep = "\n\n";
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          if (sep2 === " ")
+            sep2 = "\n";
+          else if (!prevMoreIndented && sep2 === "\n")
+            sep2 = "\n\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep === "\n")
+          if (sep2 === "\n")
             value += "\n";
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          value += sep + content;
-          sep = " ";
+          value += sep2 + content;
+          sep2 = " ";
           prevMoreIndented = false;
         }
       }
@@ -8997,25 +8997,25 @@ var require_resolve_flow_scalar = __commonJS({
       if (!match)
         return source;
       let res = match[1];
-      let sep = " ";
+      let sep2 = " ";
       let pos = first.lastIndex;
       line.lastIndex = pos;
       while (match = line.exec(source)) {
         if (match[1] === "") {
-          if (sep === "\n")
-            res += sep;
+          if (sep2 === "\n")
+            res += sep2;
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          res += sep + match[1];
-          sep = " ";
+          res += sep2 + match[1];
+          sep2 = " ";
         }
         pos = line.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep + (match?.[1] ?? "");
+      return res + sep2 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -9817,14 +9817,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep, value }) {
+    function stringifyItem({ start, key, sep: sep2, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep)
-        for (const st of sep)
+      if (sep2)
+        for (const st of sep2)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -10974,18 +10974,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep;
+          let sep2;
           if (scalar.end) {
-            sep = scalar.end;
-            sep.push(this.sourceToken);
+            sep2 = scalar.end;
+            sep2.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep = [this.sourceToken];
+            sep2 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep }]
+            items: [{ start, key: scalar, sep: sep2 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -11138,15 +11138,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep = it.sep;
-                  sep.push(this.sourceToken);
+                  const sep2 = it.sep;
+                  sep2.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep }]
+                    items: [{ start: start2, key, sep: sep2 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -11340,13 +11340,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep = fc.end.splice(1, fc.end.length);
-            sep.push(this.sourceToken);
+            const sep2 = fc.end.splice(1, fc.end.length);
+            sep2.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep }]
+              items: [{ start, key: fc, sep: sep2 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -11630,6 +11630,7 @@ var import_pino = __toESM(require_pino(), 1);
 
 // src/approval-tracker.ts
 var import_promises = require("node:fs/promises");
+var import_node_path5 = require("node:path");
 
 // ../core/dist/config.js
 var import_node_os = require("node:os");
@@ -15767,10 +15768,14 @@ var PackageCheckConfigSchema = external_exports.object({
   // v1: all scoped packages (@scope/pkg) are skipped automatically.
   // Future: add private_scopes / public_scopes config for fine-grained control.
 });
+var AmsiCheckConfigSchema = external_exports.object({
+  enabled: external_exports.boolean().default(true)
+});
 var ConfigSchema = external_exports.object({
   url_check: UrlCheckConfigSchema.default({}),
   file_check: FileCheckConfigSchema.default({}),
   package_check: PackageCheckConfigSchema.default({}),
+  amsi_check: AmsiCheckConfigSchema.default({}),
   heuristics_enabled: external_exports.boolean().default(true),
   cache: CacheConfigSchema.default({}),
   allowlist: AllowlistConfigSchema.default({}),
@@ -15780,13 +15785,141 @@ var ConfigSchema = external_exports.object({
 });
 
 // ../core/dist/config.js
-var DEFAULT_CONFIG_PATH = (0, import_node_path2.join)((0, import_node_os.homedir)(), ".sage", "config.json");
+var SAGE_DIR = "~/.sage";
+function currentHomeDir() {
+  const envHome = process.env.HOME?.trim();
+  return envHome && envHome.length > 0 ? envHome : (0, import_node_os.homedir)();
+}
 function resolvePath(pathStr) {
   if (pathStr.startsWith("~/") || pathStr === "~") {
-    return (0, import_node_path2.join)((0, import_node_os.homedir)(), pathStr.slice(1));
+    return (0, import_node_path2.join)(currentHomeDir(), pathStr.slice(1));
   }
   return pathStr;
 }
+
+// ../core/dist/approval-store.js
+var PENDING_STALE_MS = 60 * 60 * 1e3;
+var APPROVED_TTL_MS = 10 * 60 * 1e3;
+
+// ../core/dist/clients/amsi.js
+var AMSI_CSHARP_TYPE = `
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+
+public class SageAmsi {
+    [DllImport("amsi.dll", CharSet = CharSet.Unicode)]
+    static extern int AmsiInitialize(string appName, out IntPtr ctx);
+
+    [DllImport("amsi.dll")]
+    static extern int AmsiOpenSession(IntPtr ctx, out IntPtr session);
+
+    [DllImport("amsi.dll", CharSet = CharSet.Unicode)]
+    static extern int AmsiScanBuffer(
+        IntPtr ctx, byte[] buf, uint len,
+        string contentName, IntPtr session, out int result);
+
+    [DllImport("amsi.dll")]
+    static extern void AmsiCloseSession(IntPtr ctx, IntPtr session);
+
+    [DllImport("amsi.dll")]
+    static extern void AmsiUninitialize(IntPtr ctx);
+
+    private static IntPtr _ctx;
+    private static IntPtr _session;
+    private static bool _initialized;
+
+    public static bool Init() {
+        int hr = AmsiInitialize("Sage", out _ctx);
+        if (hr != 0) return false;
+        hr = AmsiOpenSession(_ctx, out _session);
+        if (hr != 0) {
+            AmsiUninitialize(_ctx);
+            return false;
+        }
+        _initialized = true;
+        return true;
+    }
+
+    public static int Scan(string content, string contentName) {
+        if (!_initialized) return -1;
+        byte[] bytes = Encoding.UTF8.GetBytes(content);
+        int result;
+        int hr = AmsiScanBuffer(_ctx, bytes, (uint)bytes.Length,
+                                contentName, _session, out result);
+        if (hr != 0) return -1;
+        return result;
+    }
+
+    public static void Shutdown() {
+        if (!_initialized) return;
+        AmsiCloseSession(_ctx, _session);
+        AmsiUninitialize(_ctx);
+        _initialized = false;
+    }
+}
+`;
+var PS_PERSISTENT_SCRIPT = `
+$ErrorActionPreference = 'Stop'
+try {
+    Add-Type -TypeDefinition @'
+${AMSI_CSHARP_TYPE}
+'@
+
+    if (-not [SageAmsi]::Init()) {
+        [Console]::Error.Write("AMSI initialization failed")
+        exit 1
+    }
+
+    [Console]::Out.WriteLine("READY")
+    [Console]::Out.Flush()
+
+    while ($null -ne ($line = [Console]::In.ReadLine())) {
+        try {
+            $req = $line | ConvertFrom-Json
+            $content = $req.content
+            $cname = $req.contentName
+            if (-not $cname) { $cname = 'sage:test' }
+            $result = [SageAmsi]::Scan($content, $cname)
+            [Console]::Out.WriteLine($result)
+            [Console]::Out.Flush()
+        } catch {
+            [Console]::Out.WriteLine("-1")
+            [Console]::Out.Flush()
+        }
+    }
+
+    [SageAmsi]::Shutdown()
+} catch {
+    [Console]::Error.Write($_.Exception.Message)
+    exit 1
+}
+`;
+var PS_ONESHOT_SCRIPT = `
+$ErrorActionPreference = 'Stop'
+try {
+    Add-Type -TypeDefinition @'
+${AMSI_CSHARP_TYPE}
+'@
+
+    if (-not [SageAmsi]::Init()) {
+        [Console]::Out.WriteLine("-1")
+        exit
+    }
+
+    $line = [Console]::In.ReadLine()
+    $req = $line | ConvertFrom-Json
+    $content = $req.content
+    $cname = $req.contentName
+    if (-not $cname) { $cname = 'sage:scan' }
+    $result = [SageAmsi]::Scan($content, $cname)
+    [SageAmsi]::Shutdown()
+    [Console]::Out.WriteLine($result)
+    [Console]::Out.Flush()
+} catch {
+    [Console]::Out.WriteLine("-1")
+}
+`;
 
 // ../core/dist/extractors.js
 var MAX_CONTENT_SIZE = 64 * 1024;
@@ -15809,18 +15942,20 @@ var DEFAULT_PLUGINS_REGISTRY = (0, import_node_path4.join)((0, import_node_os3.h
 var MAX_FILE_SIZE = 512 * 1024;
 
 // src/approval-tracker.ts
-var SAGE_DIR = "~/.sage";
-var PENDING_STALE_MS = 60 * 60 * 1e3;
+var PENDING_STALE_MS2 = 60 * 60 * 1e3;
 var CONSUMED_TTL_MS = 10 * 60 * 1e3;
 var STALE_FILE_MS = 2 * 60 * 60 * 1e3;
 function sanitizeSessionId(sessionId) {
   return sessionId.replace(/[^a-zA-Z0-9-]/g, "_");
 }
+function resolvedSageDir() {
+  return resolvePath(SAGE_DIR);
+}
 function pendingPath(sessionId) {
-  return `${SAGE_DIR}/pending-approvals-${sanitizeSessionId(sessionId)}.json`;
+  return (0, import_node_path5.join)(resolvedSageDir(), `pending-approvals-${sanitizeSessionId(sessionId)}.json`);
 }
 function consumedPath(sessionId) {
-  return `${SAGE_DIR}/consumed-approvals-${sanitizeSessionId(sessionId)}.json`;
+  return (0, import_node_path5.join)(resolvedSageDir(), `consumed-approvals-${sanitizeSessionId(sessionId)}.json`);
 }
 async function loadJson(path) {
   try {
@@ -15845,7 +15980,7 @@ function pruneStalePending(store) {
   const now = Date.now();
   const result = {};
   for (const [key, entry] of Object.entries(store)) {
-    if (now - new Date(entry.createdAt).getTime() < PENDING_STALE_MS) {
+    if (now - new Date(entry.createdAt).getTime() < PENDING_STALE_MS2) {
       result[key] = entry;
     }
   }

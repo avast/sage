@@ -75,19 +75,7 @@ describe("file path threats", () => {
 		expect(matchFilePath(engine, "/home/user/.zshenv")).toContain("CLT-FILE-004");
 	});
 
-	// --- macOS LaunchAgents/Daemons (CLT-FILE-005) ---
-
-	it("detects LaunchAgents plist", () => {
-		expect(matchFilePath(engine, "~/Library/LaunchAgents/com.evil.agent.plist")).toContain(
-			"CLT-FILE-005",
-		);
-	});
-
-	it("detects LaunchDaemons plist", () => {
-		expect(matchFilePath(engine, "/Library/LaunchDaemons/com.evil.daemon.plist")).toContain(
-			"CLT-FILE-005",
-		);
-	});
+	// LaunchAgent/LaunchDaemon tests moved to mac-files-threats.test.ts (CLT-MAC-FILE-001)
 
 	// --- Cron (CLT-FILE-006) ---
 
@@ -166,5 +154,70 @@ describe("file path threats", () => {
 	it("does not match package.json", () => {
 		const ids = matchFilePath(engine, "/project/package.json");
 		expect(ids.filter((id) => id.startsWith("CLT-FILE"))).toEqual([]);
+	});
+
+	// --- FP coverage ---
+
+	it("does not match /var/log/cron.log (006 FP)", () => {
+		const ids = matchFilePath(engine, "/var/log/cron.log");
+		expect(ids).not.toContain("CLT-FILE-006");
+	});
+
+	it("does not match /etc/crontab (006 FP)", () => {
+		const ids = matchFilePath(engine, "/etc/crontab");
+		expect(ids).not.toContain("CLT-FILE-006");
+	});
+
+	it("does not match .env.example (008 FP)", () => {
+		const ids = matchFilePath(engine, "/app/.env.example");
+		expect(ids).not.toContain("CLT-FILE-008");
+	});
+
+	it("does not match config.env.test (008 FP — not a dotfile)", () => {
+		const ids = matchFilePath(engine, "/app/config.env.test");
+		expect(ids).not.toContain("CLT-FILE-008");
+	});
+
+	it("detects .env.test (008 — test env may hold secrets)", () => {
+		expect(matchFilePath(engine, "/app/.env.test")).toContain("CLT-FILE-008");
+	});
+
+	it("detects .env.prod (008)", () => {
+		expect(matchFilePath(engine, "/app/.env.prod")).toContain("CLT-FILE-008");
+	});
+
+	it("detects .env.dev (008)", () => {
+		expect(matchFilePath(engine, "/app/.env.dev")).toContain("CLT-FILE-008");
+	});
+
+	it("detects .env.stage (008)", () => {
+		expect(matchFilePath(engine, "/app/.env.stage")).toContain("CLT-FILE-008");
+	});
+
+	it("does not match .git/config (009 FP)", () => {
+		const ids = matchFilePath(engine, "/repo/.git/config");
+		expect(ids).not.toContain("CLT-FILE-009");
+	});
+
+	// --- FN coverage ---
+
+	it("detects /etc/cron.hourly (006)", () => {
+		expect(matchFilePath(engine, "/etc/cron.hourly/task")).toContain("CLT-FILE-006");
+	});
+
+	it("detects /etc/cron.weekly (006)", () => {
+		expect(matchFilePath(engine, "/etc/cron.weekly/report")).toContain("CLT-FILE-006");
+	});
+
+	it("detects /etc/cron.monthly (006)", () => {
+		expect(matchFilePath(engine, "/etc/cron.monthly/cleanup")).toContain("CLT-FILE-006");
+	});
+
+	it("detects .env.staging (008)", () => {
+		expect(matchFilePath(engine, "/app/.env.staging")).toContain("CLT-FILE-008");
+	});
+
+	it("detects .env.development (008)", () => {
+		expect(matchFilePath(engine, "/app/.env.development")).toContain("CLT-FILE-008");
 	});
 });

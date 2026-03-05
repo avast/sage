@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { checkForUpdate, isNewerVersion } from "../version-check.js";
+import { resolveEndpoint } from "../clients/url-check.js";
+import { checkForUpdate, isNewerVersion, type VersionCheckContext } from "../version-check.js";
 
 describe("isNewerVersion", () => {
 	it("detects newer major version", () => {
@@ -116,5 +117,63 @@ describe("checkForUpdate", () => {
 
 		const result = await checkForUpdate("0.4.0");
 		expect(result).toBeNull();
+	});
+
+	it("always sends POST with environment body", async () => {
+		globalThis.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({ version: "0.4.0" }),
+		});
+
+		await checkForUpdate("0.4.0");
+
+		const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+		expect(fetchCall[0]).toBe(resolveEndpoint("/version-check"));
+		const options = fetchCall[1] as RequestInit;
+		expect(options.method).toBe("POST");
+		const body = JSON.parse(options.body as string);
+		expect(body.sage_version).toBe("0.4.0");
+		expect(body.os).toBe(process.platform);
+		expect(body.arch).toBe(process.arch);
+		expect(typeof body.os_version).toBe("string");
+	});
+
+	it("includes agent context when provided", async () => {
+		globalThis.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({ version: "1.0.0" }),
+		});
+
+		const ctx: VersionCheckContext = {
+			agentRuntime: "cursor",
+			agentRuntimeVersion: "0.48.7",
+			iid: "550e8400-e29b-41d4-a716-446655440000",
+		};
+
+		await checkForUpdate("0.4.0", undefined, undefined, ctx);
+
+		const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+		const body = JSON.parse((fetchCall[1] as RequestInit).body as string);
+		expect(body.agent_runtime).toBe("cursor");
+		expect(body.agent_runtime_version).toBe("0.48.7");
+		expect(body.iid).toBe("550e8400-e29b-41d4-a716-446655440000");
+	});
+
+	it("sends body without iid when installation id is unavailable", async () => {
+		globalThis.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({ version: "0.4.0" }),
+		});
+
+		await checkForUpdate("0.4.0", undefined, undefined, {
+			agentRuntime: "claude-code",
+		});
+
+		const body = JSON.parse(
+			((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1] as RequestInit)
+				.body as string,
+		);
+		expect(body.agent_runtime).toBe("claude-code");
+		expect(body.iid).toBeUndefined();
 	});
 });

@@ -123,10 +123,21 @@ export interface PackageCheckResult {
 	ageDays?: number;
 }
 
+// ── AMSI Check ─────────────────────────────────────────────────────
+
+export interface AmsiCheckResult {
+	content: string;
+	contentName: string;
+	amsiResult: number;
+	isDetected: boolean;
+	isBlockedByAdmin: boolean;
+}
+
 export interface SignalSources {
 	heuristicMatches: HeuristicMatch[];
 	urlCheckResults: UrlCheckResult[];
 	packageCheckResults?: PackageCheckResult[];
+	amsiCheckResults?: AmsiCheckResult[];
 }
 
 // ── Cache ───────────────────────────────────────────────────────────
@@ -195,10 +206,16 @@ export const PackageCheckConfigSchema = z.object({
 	// Future: add private_scopes / public_scopes config for fine-grained control.
 });
 
+export const AmsiCheckConfigSchema = z.object({
+	enabled: z.boolean().default(true),
+});
+export type AmsiCheckConfig = z.infer<typeof AmsiCheckConfigSchema>;
+
 export const ConfigSchema = z.object({
 	url_check: UrlCheckConfigSchema.default({}),
 	file_check: FileCheckConfigSchema.default({}),
 	package_check: PackageCheckConfigSchema.default({}),
+	amsi_check: AmsiCheckConfigSchema.default({}),
 	heuristics_enabled: z.boolean().default(true),
 	cache: CacheConfigSchema.default({}),
 	allowlist: AllowlistConfigSchema.default({}),
@@ -283,3 +300,7 @@ export interface PluginScanCache {
 	configHash: string;
 	entries: Record<string, CachedPluginScanResult>;
 }
+
+// ── Agent runtime ──────────────────────────────────────────────────
+
+export type AgentRuntime = "claude-code" | "openclaw" | "opencode" | "cursor" | "vscode";

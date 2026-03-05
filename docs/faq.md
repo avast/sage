@@ -6,7 +6,7 @@ On Claude Code, yes - it loads automatically via hooks on every session. On Curs
 
 ## What happens if Sage encounters an error?
 
-Sage fails open. Any internal error (API timeout, config parse failure, etc.) results in an `allow` verdict. Hooks always exit 0. The agent is never blocked due to a Sage bug.
+Sage fails open. Any internal error (API timeout, config parse failure, etc.) results in an `allow` verdict. The agent is never blocked due to a Sage bug.
 
 ## Does Sage send my code to the cloud?
 
@@ -14,7 +14,11 @@ No. Sage sends URL hashes and package hashes to reputation APIs. File content, c
 
 ## How do I handle false positives?
 
-When Sage shows an `ask` verdict, you can choose to proceed. The artifact is then eligible for allowlisting so it will not be flagged again. The allowlist is stored at `~/.sage/allowlist.json`.
+When Sage shows an `ask` verdict, you can choose to proceed. After approving, you can ask the agent to permanently allowlist the artifact (e.g. "add that to the Sage allowlist") — it will do so via the `sage_allowlist_add` MCP tool. Allowlisted artifacts are stored in `~/.sage/allowlist.json` and won't be flagged again.
+
+## Can I disable a specific threat rule?
+
+Yes. Add its ID to `disabled_threats` in `~/.sage/config.json`. Threat IDs are in the YAML files under `threats/`. See [Configuration](configuration.md#disabled_threats).
 
 ## Can I add custom threat rules?
 
@@ -35,6 +39,12 @@ MCP tool call interception (`mcp__*`) is planned but not yet implemented. Curren
 - **OpenClaw:** Uninstall the plugin via `openclaw plugins uninstall sage`
 
 You can also disable individual features in `~/.sage/config.json` (e.g. set `url_check.enabled` to `false`).
+
+## How do I prevent the agent from auto-approving flagged actions on OpenClaw or OpenCode?
+
+OpenClaw and OpenCode relay `ask` verdicts through the agent conversation, so a prompt-injection attack could trick the agent into approving without user consent. (Claude Code and Cursor use native UI dialogs and are not affected.)
+
+Set `"sensitivity": "paranoid"` in `~/.sage/config.json` to promote `ask` verdicts to `deny` on these platforms, removing the agent from the approval loop. See [Configuration](configuration.md#sensitivity).
 
 ## Why does OpenClaw flag Sage as "potential-exfiltration"?
 

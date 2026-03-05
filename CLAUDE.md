@@ -24,7 +24,9 @@ pnpm build:sea                              # Build standalone SEA binaries (req
 pnpm lint                                   # Lint with Biome
 pnpm lint:fix                               # Lint + auto-fix
 pnpm check                                  # Type check all packages
-pnpm bump <version>                         # Sync version across all manifests (e.g. pnpm bump 0.4.0)
+pnpm changeset                              # Create a changeset for your changes
+pnpm run version                            # Apply changesets: bump versions, generate changelogs, sync manifests
+bash scripts/pre-release-audit.sh           # Pre-release content audit (requires .gitleaks.toml symlink)
 ```
 
 ## Repository Structure
@@ -55,7 +57,7 @@ TypeScript monorepo with three packages:
 
 **OpenClaw E2E prerequisites:** Running OpenClaw gateway with Sage installed. Auth token is read from `~/.openclaw/openclaw.json` automatically (override via `OPENCLAW_GATEWAY_TOKEN` env var). See `docs/development.md` for gateway setup.
 
-**Cursor / VS Code E2E prerequisites:** Installed Cursor / VS Code executables. Optional overrides: `SAGE_CURSOR_PATH`, `SAGE_VSCODE_PATH`, `VSCODE_EXECUTABLE_PATH`.
+**Cursor / VS Code E2E prerequisites:** Installed Cursor / VS Code executables. Cursor headless agent coverage in `pnpm test:e2e:cursor` additionally requires the `agent` CLI (PATH or `SAGE_AGENT_PATH`) plus valid auth (`agent login` or `CURSOR_API_KEY`); if unavailable, only that headless sub-suite is skipped. Optional executable overrides: `SAGE_CURSOR_PATH`, `SAGE_AGENT_PATH`, `SAGE_VSCODE_PATH`, `VSCODE_EXECUTABLE_PATH`.
 
 ## Architecture
 
@@ -69,12 +71,15 @@ This is a **multi-platform plugin** with three connectors and a shared core:
    - `extractors.ts` — Extracts URLs, commands, file paths from tool inputs
    - `threat-loader.ts` — Loads YAML threat definitions from `threats/`
    - `heuristics.ts` — Matches extracted artifacts against threat patterns
-   - `clients/url-check.ts` — HTTP client for URL reputation checking (native fetch)
+   - `clients/url-check.ts` — HTTP client for URL reputation checking and endpoint resolver
    - `engine.ts` — Decision engine combining signals into a Verdict
    - `cache.ts` — JSON file verdict cache with TTLs
    - `allowlist.ts` — User allowlist management
    - `trusted-domains.ts` — Trusted domain loading and matching
    - `audit-log.ts` — JSONL audit log for verdicts
+   - `installation-id.ts` — Persistent installation UUID (`~/.sage/installation-id`)
+   - `version-check.ts` — Version check via POST with environment context
+   - `session-start.ts` — Session start orchestrator (scan + version check)
    - `plugin-scanner.ts` — Plugin file scanning for threats
    - `plugin-scan-cache.ts` — Plugin scan result cache
 
@@ -87,7 +92,7 @@ This is a **multi-platform plugin** with three connectors and a shared core:
 ## Key Conventions
 
 - All detection patterns are data (YAML in `threats/`), not hardcoded
-- Fail-open: every error path returns an allow verdict, hooks always exit 0
+- Fail-open: every internal error path returns an allow verdict; extension hooks always exit with code `0`
 - Verdicts use three decisions: `allow`, `deny`, `ask` with confidence scoring
 - Sensitivity presets: paranoid (0.70), balanced (0.85), relaxed (0.95)
 - Merge precedence when multiple signals fire: `deny > ask > allow`
@@ -97,4 +102,4 @@ This is a **multi-platform plugin** with three connectors and a shared core:
 
 ## Pre-PR Checklist
 
-Before creating a pull request, run the `code-simplifier` subagent on all changed files to review for clarity, consistency, and maintainability improvements. Apply any suggested changes before opening the PR.
+Before creating a pull request, run the @"code-simplifier:code-simplifier (agent)" subagent on all changed files to review for clarity, consistency, and maintainability improvements. Apply any suggested changes before opening the PR.

@@ -5,13 +5,9 @@ import type {
 	Verdict,
 	VersionCheckResult,
 } from "@sage/core";
+import { formatStartupClean, formatThreatBanner, severityEmoji } from "@sage/core";
 import { describe, expect, it } from "vitest";
-import {
-	formatBlockReason,
-	formatStartupClean,
-	formatThreatBanner,
-	severityEmoji,
-} from "../format.js";
+import { formatBlockReason } from "../format.js";
 
 function makePlugin(key = "test-plugin@marketplace"): PluginInfo {
 	return { key, installPath: "/tmp/test", version: "1.0.0", lastUpdated: "" };

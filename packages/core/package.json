@@ -1,7 +1,7 @@
 {
   "name": "@sage/core",
   "license": "Apache-2.0",
-  "version": "0.4.4",
+  "version": "0.5.1",
   "type": "module",
   "exports": {
     ".": {
@@ -19,6 +19,9 @@
   "dependencies": {
     "yaml": "^2.7.0",
     "zod": "^3.24.0"
+  },
+  "optionalDependencies": {
+    "koffi": "^2.9.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

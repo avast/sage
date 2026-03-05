@@ -83,10 +83,15 @@ export class RegistryClient {
 			if (!latestTag) return null;
 
 			const versions = (data.versions ?? {}) as Record<string, Record<string, unknown>>;
+			// Resolve dist-tags (e.g. "latest", "next", "canary") to actual version strings
+			const effectiveVersion =
+				requestedVersion && distTags[requestedVersion]
+					? distTags[requestedVersion]
+					: requestedVersion;
 			// Use requested version if specified and exists, otherwise fall back to latest
-			const requestedVersionFound = !requestedVersion || Boolean(versions[requestedVersion]);
+			const requestedVersionFound = !effectiveVersion || Boolean(versions[effectiveVersion]);
 			const resolvedVersion =
-				requestedVersion && versions[requestedVersion] ? requestedVersion : latestTag;
+				effectiveVersion && versions[effectiveVersion] ? effectiveVersion : latestTag;
 			const resolvedVersionData = versions[resolvedVersion];
 			if (!resolvedVersionData) return null;
 

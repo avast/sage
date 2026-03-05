@@ -17,7 +17,7 @@
   expires_at: null
   revoked: false
 
-# Write to Sage config files
+# Access Sage config files
 - id: "CLT-SELF-002"
   category: self_defense
   severity: high
@@ -25,7 +25,7 @@
   action: require_approval
   pattern: "\\.sage[\\\\/](allowlist|config)\\.json"
   match_on: file_path
-  title: "Attempt to write to Sage configuration files"
+  title: "Access Sage configuration files"
   expires_at: null
   revoked: false
 

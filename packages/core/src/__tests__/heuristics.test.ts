@@ -1,23 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { HeuristicsEngine } from "../heuristics.js";
-import type { Artifact, Threat, TrustedDomain } from "../types.js";
-
-function makeThreat(overrides: Partial<Threat> = {}): Threat {
-	return {
-		id: "CLT-TEST-001",
-		category: "tool",
-		severity: "critical",
-		confidence: 0.95,
-		action: "block",
-		pattern: "test",
-		compiledPattern: new RegExp(overrides.pattern ?? "test"),
-		matchOn: new Set(["command"]),
-		title: "Test threat",
-		expiresAt: null,
-		revoked: false,
-		...overrides,
-	};
-}
+import type { Artifact, TrustedDomain } from "../types.js";
+import { makeThreat } from "./test-helper.js";
 
 describe("HeuristicsEngine", () => {
 	it("matches command artifact", () => {

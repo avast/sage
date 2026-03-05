@@ -1,70 +1,58 @@
 /**
- * In-memory approval store for OpenCode ask-flow.
+ * In-memory approval store for soft-gated connectors (OpenCode, OpenClaw).
+ * Tracks pending→approved flow with artifact tracking and TTL expiry.
  */
 
 import { createHash } from "node:crypto";
-import type { Artifact, Verdict } from "@sage/core";
+import type { Artifact } from "./types.js";
 
 const PENDING_STALE_MS = 60 * 60 * 1000;
 const APPROVED_TTL_MS = 10 * 60 * 1000;
 
-export interface PendingApproval {
-	sessionId: string;
+export interface PendingEntry {
 	artifacts: Artifact[];
-	verdict: Verdict;
 	createdAt: number;
 }
 
-export interface ApprovedAction {
-	sessionId: string;
+export interface ApprovedEntry {
 	artifacts: Artifact[];
-	verdict: Verdict;
 	approvedAt: number;
 	expiresAt: number;
 }
 
-/**
- * An in-memory approval store for a given opencode session.
- */
 export class ApprovalStore {
-	private readonly pending = new Map<string, PendingApproval>();
-	private readonly approved = new Map<string, ApprovedAction>();
+	private readonly pending = new Map<string, PendingEntry>();
+	private readonly approved = new Map<string, ApprovedEntry>();
 
-	static actionId(toolName: string, params: Record<string, unknown>): string {
-		const payload = JSON.stringify({ toolName, params });
-		return createHash("sha256").update(payload).digest("hex").slice(0, 24);
+	static actionId(toolName: string, params: Record<string, unknown>, sessionId: string): string {
+		const payload = JSON.stringify({ toolName, params, sessionId });
+		return createHash("sha256").update(payload).digest("hex");
 	}
 
 	static artifactId(type: string, value: string): string {
 		return `${type}:${value}`;
 	}
 
-	setPending(actionId: string, approval: PendingApproval): void {
-		this.pending.set(actionId, approval);
-	}
-
-	getPending(actionId: string): PendingApproval | undefined {
-		return this.pending.get(actionId);
+	setPending(actionId: string, entry: PendingEntry): void {
+		this.pending.set(actionId, { ...entry, artifacts: [...entry.artifacts] });
 	}
 
 	deletePending(actionId: string): void {
 		this.pending.delete(actionId);
 	}
 
-	approve(actionId: string): PendingApproval | null {
-		const pending = this.pending.get(actionId);
-		if (!pending) return null;
+	approve(actionId: string): PendingEntry | null {
+		const entry = this.pending.get(actionId);
+		if (!entry) return null;
 
 		const now = Date.now();
 		this.approved.set(actionId, {
-			sessionId: pending.sessionId,
-			artifacts: pending.artifacts,
-			verdict: pending.verdict,
+			artifacts: [...entry.artifacts],
 			approvedAt: now,
 			expiresAt: now + APPROVED_TTL_MS,
 		});
 		this.pending.delete(actionId);
-		return pending;
+		return entry;
 	}
 
 	isApproved(actionId: string): boolean {
@@ -77,32 +65,8 @@ export class ApprovalStore {
 		return true;
 	}
 
-	getApproved(actionId: string): ApprovedAction | null {
-		const entry = this.approved.get(actionId);
-		if (!entry) return null;
-		if (Date.now() >= entry.expiresAt) {
-			this.approved.delete(actionId);
-			return null;
-		}
-		return entry;
-	}
-
 	hasApprovedArtifact(type: string, value: string): boolean {
-		const id = ApprovalStore.artifactId(type, value);
-		for (const [actionId, entry] of this.approved.entries()) {
-			if (Date.now() >= entry.expiresAt) {
-				this.approved.delete(actionId);
-				continue;
-			}
-			if (
-				entry.artifacts.some(
-					(artifact) => ApprovalStore.artifactId(artifact.type, artifact.value) === id,
-				)
-			) {
-				return true;
-			}
-		}
-		return false;
+		return this.findApprovedAction(type, value) !== null;
 	}
 
 	consumeApprovedArtifact(type: string, value: string): boolean {
@@ -112,16 +76,36 @@ export class ApprovalStore {
 				this.approved.delete(actionId);
 				continue;
 			}
+			const idx = entry.artifacts.findIndex(
+				(a) => ApprovalStore.artifactId(a.type, a.value) === id,
+			);
+			if (idx !== -1) {
+				entry.artifacts.splice(idx, 1);
+				if (entry.artifacts.length === 0) {
+					this.approved.delete(actionId);
+				}
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private findApprovedAction(type: string, value: string): string | null {
+		const id = ApprovalStore.artifactId(type, value);
+		for (const [actionId, entry] of this.approved.entries()) {
+			if (Date.now() >= entry.expiresAt) {
+				this.approved.delete(actionId);
+				continue;
+			}
 			if (
 				entry.artifacts.some(
 					(artifact) => ApprovalStore.artifactId(artifact.type, artifact.value) === id,
 				)
 			) {
-				this.approved.delete(actionId);
-				return true;
+				return actionId;
 			}
 		}
-		return false;
+		return null;
 	}
 
 	cleanup(now = Date.now()): void {

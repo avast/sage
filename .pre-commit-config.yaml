@@ -1,0 +1,42 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+        args: ["--config", ".gitleaks.toml"]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: detect-private-key
+  - repo: local
+    hooks:
+      - id: lint
+        name: Lint (Biome)
+        entry: pnpm lint
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: build
+        name: Build
+        entry: pnpm build
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: typecheck
+        name: Type check
+        entry: pnpm check
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: test
+        name: Test
+        entry: pnpm test
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: changeset-check
+        name: Check for changeset
+        entry: bash scripts/check-changeset.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

@@ -130,6 +130,32 @@ describe("OpenCode integration: Sage plugin pipeline", { timeout: 30_000 }, () =
 		await expect(runBefore("chmod 777 ./script.sh", "c3")).rejects.toThrow(/sage_approve/);
 	});
 
+	it("ask verdict in paranoid mode → deny without sage_approve", async () => {
+		const configPath = resolve(tmpHome, ".sage", "config.json");
+		const origConfig = await readFile(configPath, "utf8");
+
+		await writeFile(
+			configPath,
+			JSON.stringify({ sensitivity: "paranoid", allowlist: { path: allowlistPath } }, null, 2),
+			"utf8",
+		);
+
+		try {
+			await expect(runBefore("chmod 777 ./script.sh", "c-paranoid")).rejects.toThrow(
+				/Sage blocked/,
+			);
+			// Must NOT contain sage_approve prompt
+			try {
+				await runBefore("chmod 777 ./script2.sh", "c-paranoid-2");
+			} catch (error) {
+				const message = String(error instanceof Error ? error.message : error);
+				expect(message).not.toContain("sage_approve");
+			}
+		} finally {
+			await writeFile(configPath, origConfig, "utf8");
+		}
+	});
+
 	it("passes through unmapped tools", async () => {
 		const before = hooks["tool.execute.before"];
 		await expect(
@@ -154,6 +180,7 @@ describe("OpenCode integration: Sage plugin pipeline", { timeout: 30_000 }, () =
 
 		const result = await approve?.execute({ actionId, approved: true }, makeContext());
 		expect(result).toContain("Approved action");
+		expect(result).toContain("Do NOT add it to the allowlist");
 
 		await expect(runBefore("chmod 777 ./run.sh", "c6")).resolves.toBeUndefined();
 	});
@@ -373,9 +400,8 @@ describe("OpenCode integration: Plugin scanning", { timeout: 30_000 }, () => {
 
 		await handler();
 		// Should not fail (self-exclusion logic should prevent scanning ourselves)
-		// With formatStartupClean, we always get a clean banner even with no findings
-		expect(findingsBanner).toContain("✅ No threats found");
-		expect(findingsBanner).not.toContain("⚠️");
+		// Clean scan returns a status message (no threats)
+		expect(findingsBanner).toContain("No threats found");
 	});
 
 	it("caches clean scan results", async () => {
@@ -403,9 +429,8 @@ describe("OpenCode integration: Plugin scanning", { timeout: 30_000 }, () => {
 
 		// Just verify scan completes without error (caching is internal detail)
 		await expect(handler()).resolves.toBeUndefined();
-		// Clean plugin should have no findings - expect clean banner
-		expect(findingsBanner).toContain("✅ No threats found");
-		expect(findingsBanner).not.toContain("⚠️");
+		// Clean scan returns a status message
+		expect(findingsBanner).toContain("No threats found");
 	});
 
 	it("detects threats in malicious plugin code", async () => {
@@ -462,15 +487,13 @@ describe("OpenCode integration: Plugin scanning", { timeout: 30_000 }, () => {
 
 		await handler();
 
-		// Banner should always be defined (either threats or clean message)
-		expect(findingsBanner).toBeDefined();
 		if (findingsBanner?.includes("⚠️")) {
 			// Threats detected - verify banner format
 			expect(findingsBanner).toContain("suspect.js");
 			expect(findingsBanner).toMatch(/\d+ finding\(s\)/);
 		} else {
 			// Clean scan (if threat pattern didn't trigger for some reason)
-			expect(findingsBanner).toContain("✅ No threats found");
+			expect(findingsBanner).toContain("No threats found");
 		}
 	});
 

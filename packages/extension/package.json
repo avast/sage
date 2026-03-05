@@ -2,7 +2,7 @@
   "name": "sage-cursor",
   "displayName": "Gen Sage",
   "description": "Safety for Agents — protects AI agent tool calls against dangerous commands, malicious URLs, and harmful file writes.",
-  "version": "0.4.4",
+  "version": "0.5.1",
   "private": true,
   "publisher": "Gen",
   "icon": "sage-icon.png",
@@ -73,6 +73,7 @@
         },
         "sage.hookRunnerPath": {
           "type": "string",
+          "scope": "application",
           "default": "",
           "description": "Optional absolute path to a sage-hook runner script."
         }

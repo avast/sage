@@ -1,0 +1,355 @@
+# macOS command threat patterns for Sage
+# Author: Gen Digital Inc.
+# License: DRL-1.1 (see threats/LICENSE)
+# Covers: osascript RCE, macOS LOLBins, destructive ops, defense evasion, privesc, reverse shells
+
+# --- osascript Remote Code Execution ---
+
+# osascript -e 'do shell script' (AppleScript shell execution)
+- id: "CLT-MAC-CMD-001"
+  category: tool
+  severity: critical
+  confidence: 0.95
+  action: block
+  pattern: "\\bosascript\\b.*-e.*do shell script"
+  case_insensitive: true
+  match_on: command
+  title: "AppleScript shell execution via osascript -e"
+  expires_at: null
+  revoked: false
+
+# osascript -l JavaScript (JXA execution)
+- id: "CLT-MAC-CMD-002"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\bosascript\\b.*-l\\s+JavaScript"
+  case_insensitive: true
+  match_on: command
+  title: "JavaScript for Automation (JXA) execution via osascript"
+  expires_at: null
+  revoked: false
+
+# Pipe to osascript (stdin AppleScript execution)
+- id: "CLT-MAC-CMD-003"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\|\\s*osascript"
+  match_on: command
+  title: "Piped input to osascript (stdin AppleScript execution)"
+  expires_at: null
+  revoked: false
+
+# osascript loading script file from remote download
+- id: "CLT-MAC-CMD-004"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "(curl|wget).*\\|.*osascript|osascript.*(curl|wget)"
+  case_insensitive: true
+  match_on: command
+  title: "Remote script download piped to osascript"
+  expires_at: null
+  revoked: false
+
+# --- open command abuse ---
+
+# open -a Terminal (launch Terminal with script)
+- id: "CLT-MAC-CMD-005"
+  category: tool
+  severity: high
+  confidence: 0.80
+  action: require_approval
+  pattern: "\\bopen\\s+-a\\s+Terminal"
+  match_on: command
+  title: "Launch Terminal application via open -a"
+  expires_at: null
+  revoked: false
+
+# open with hidden/background flags
+- id: "CLT-MAC-CMD-006"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\bopen\\s+(-[jg]|--hide|--background)"
+  match_on: command
+  title: "Launch application hidden/background via open"
+  expires_at: null
+  revoked: false
+
+# --- macOS LOLBins ---
+
+# dscl user/group manipulation
+- id: "CLT-MAC-CMD-007"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\bdscl\\b.*(-create|-delete|-passwd|-append)"
+  match_on: command
+  title: "Directory Services user/group manipulation via dscl"
+  expires_at: null
+  revoked: false
+
+# networksetup proxy/DNS manipulation
+- id: "CLT-MAC-CMD-008"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\bnetworksetup\\b.*(-setwebproxy|-setsocksfirewallproxy|-setdnsservers|-setautoproxyurl)"
+  case_insensitive: true
+  match_on: command
+  title: "Network proxy/DNS manipulation via networksetup"
+  expires_at: null
+  revoked: false
+
+# systemsetup enabling remote access
+- id: "CLT-MAC-CMD-009"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\bsystemsetup\\b.*(-setremotelogin\\s+on|-setwakeonnetworkaccess\\s+on)"
+  case_insensitive: true
+  match_on: command
+  title: "Enable remote login/wake via systemsetup"
+  expires_at: null
+  revoked: false
+
+# kickstart ARD remote management
+- id: "CLT-MAC-CMD-010"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "kickstart.*-activate.*-configure"
+  case_insensitive: true
+  match_on: command
+  title: "Apple Remote Desktop activation via kickstart"
+  expires_at: null
+  revoked: false
+
+# installer -pkg -target / (silent package install)
+- id: "CLT-MAC-CMD-011"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\binstaller\\b.*-pkg.*-target"
+  case_insensitive: true
+  match_on: command
+  title: "Silent package install via installer command"
+  expires_at: null
+  revoked: false
+
+# hdiutil mount remote DMG
+- id: "CLT-MAC-CMD-012"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\bhdiutil\\b.*\\b(attach|mount)\\b.*https?://"
+  case_insensitive: true
+  match_on: command
+  title: "Mount remote DMG via hdiutil"
+  expires_at: null
+  revoked: false
+
+# pkgutil --forget (package receipt manipulation)
+- id: "CLT-MAC-CMD-013"
+  category: tool
+  severity: high
+  confidence: 0.80
+  action: require_approval
+  pattern: "\\bpkgutil\\b.*--forget"
+  match_on: command
+  title: "Package receipt removal via pkgutil --forget"
+  expires_at: null
+  revoked: false
+
+# --- Destructive Operations ---
+
+# diskutil eraseDisk
+- id: "CLT-MAC-CMD-014"
+  category: tool
+  severity: critical
+  confidence: 0.95
+  action: block
+  pattern: "\\bdiskutil\\b.*\\b(eraseDisk|partitionDisk|secureErase)\\b"
+  match_on: command
+  title: "Disk erase/partition via diskutil"
+  expires_at: null
+  revoked: false
+
+# tmutil delete (Time Machine backup deletion — ransomware indicator)
+- id: "CLT-MAC-CMD-015"
+  category: tool
+  severity: critical
+  confidence: 0.95
+  action: block
+  pattern: "\\btmutil\\b.*\\b(delete|disable)\\b"
+  match_on: command
+  title: "Time Machine backup deletion/disable via tmutil (ransomware indicator)"
+  expires_at: null
+  revoked: false
+
+# --- Defense Evasion ---
+
+# spctl --master-disable (Gatekeeper disable)
+- id: "CLT-MAC-CMD-016"
+  category: tool
+  severity: critical
+  confidence: 0.95
+  action: block
+  pattern: "\\bspctl\\b.*--master-disable"
+  match_on: command
+  title: "Gatekeeper disable via spctl --master-disable"
+  expires_at: null
+  revoked: false
+
+# csrutil disable (SIP disable)
+- id: "CLT-MAC-CMD-017"
+  category: tool
+  severity: critical
+  confidence: 0.95
+  action: block
+  pattern: "\\bcsrutil\\b.*\\bdisable\\b"
+  match_on: command
+  title: "System Integrity Protection disable via csrutil"
+  expires_at: null
+  revoked: false
+
+# defaults write LSQuarantine (quarantine flag disable)
+- id: "CLT-MAC-CMD-018"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\bdefaults\\b.*\\bwrite\\b.*LSQuarantine"
+  case_insensitive: true
+  match_on: command
+  title: "Quarantine flag disable via defaults write LSQuarantine"
+  expires_at: null
+  revoked: false
+
+# xattr -d com.apple.quarantine (quarantine removal)
+- id: "CLT-MAC-CMD-019"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\bxattr\\b.*-d.*com\\.apple\\.quarantine"
+  match_on: command
+  title: "Quarantine attribute removal via xattr"
+  expires_at: null
+  revoked: false
+
+# pfctl -d (packet filter / firewall disable)
+- id: "CLT-MAC-CMD-020"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\bpfctl\\b.*\\s-d\\b"
+  match_on: command
+  title: "Packet filter (firewall) disable via pfctl -d"
+  expires_at: null
+  revoked: false
+
+# tccutil reset (TCC privacy permissions reset)
+- id: "CLT-MAC-CMD-021"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\btccutil\\b.*\\breset\\b"
+  match_on: command
+  title: "TCC privacy permissions reset via tccutil"
+  expires_at: null
+  revoked: false
+
+# launchctl unload security daemons
+- id: "CLT-MAC-CMD-022"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\blaunchctl\\b.*\\b(unload|bootout)\\b.*(com\\.apple\\.MRT|com\\.apple\\.XProtect|com\\.apple\\.security)"
+  case_insensitive: true
+  match_on: command
+  title: "Unload macOS security daemon via launchctl"
+  expires_at: null
+  revoked: false
+
+# defaults write to disable macOS security features
+- id: "CLT-MAC-CMD-023"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\bdefaults\\b.*\\bwrite\\b.*(com\\.apple\\.Finder\\s+AppleShowAllFiles|com\\.apple\\.LaunchServices\\s+LSQuarantine|com\\.apple\\.loginwindow)"
+  case_insensitive: true
+  match_on: command
+  title: "Modify macOS security-related defaults"
+  expires_at: null
+  revoked: false
+
+# --- Privilege Escalation ---
+
+# dscl . -passwd (change user password)
+- id: "CLT-MAC-CMD-024"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\bdscl\\b.*\\s-passwd\\b"
+  match_on: command
+  title: "User password change via dscl"
+  expires_at: null
+  revoked: false
+
+# dseditgroup add user to admin
+- id: "CLT-MAC-CMD-025"
+  category: tool
+  severity: critical
+  confidence: 0.95
+  action: block
+  pattern: "\\bdseditgroup\\b.*-o\\s+edit.*-a.*admin"
+  match_on: command
+  title: "Add user to admin group via dseditgroup"
+  expires_at: null
+  revoked: false
+
+# createhomedir — create home directory for arbitrary user
+- id: "CLT-MAC-CMD-026"
+  category: tool
+  severity: high
+  confidence: 0.80
+  action: require_approval
+  pattern: "\\bcreatehomedir\\b"
+  match_on: command
+  title: "Create home directory for user via createhomedir"
+  expires_at: null
+  revoked: false
+
+# Reverse shells (Python, Ruby, zsh) moved to commands.yaml (CLT-CMD-023..025)
+
+# --- Clipboard / Screen Capture ---
+
+# screencapture to remote or hidden location
+- id: "CLT-MAC-CMD-027"
+  category: tool
+  severity: high
+  confidence: 0.80
+  action: require_approval
+  pattern: "\\bscreencapture\\b.*(-x|-C)"
+  match_on: command
+  title: "Silent screen capture via screencapture"
+  expires_at: null
+  revoked: false

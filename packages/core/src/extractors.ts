@@ -140,3 +140,15 @@ export function extractFromWrite(toolInput: Record<string, unknown>): Artifact[]
 export function extractFromEdit(toolInput: Record<string, unknown>): Artifact[] {
 	return extractFileArtifacts(toolInput, "file_path", "new_string", "edit", "from_edit_content");
 }
+
+export function extractFromRead(toolInput: Record<string, unknown>): Artifact[] {
+	return extractFileArtifacts(toolInput, "file_path", "content", "read", "from_read_content");
+}
+
+export function extractFromDelete(toolInput: Record<string, unknown>): Artifact[] {
+	const filePath = toolInput.file_path;
+	if (filePath && typeof filePath === "string") {
+		return [{ type: "file_path", value: filePath, context: "delete" }];
+	}
+	return [];
+}

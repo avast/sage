@@ -18,7 +18,7 @@ function toolInputSummary(toolName: string, toolInput: Record<string, unknown>):
 	if (toolName === "WebFetch") {
 		return String(toolInput.url ?? "").slice(0, MAX_SUMMARY_LEN);
 	}
-	if (toolName === "Write" || toolName === "Edit") {
+	if (toolName === "Write" || toolName === "Edit" || toolName === "Read" || toolName === "Delete") {
 		return String(toolInput.file_path ?? "").slice(0, MAX_SUMMARY_LEN);
 	}
 	return JSON.stringify(toolInput).slice(0, MAX_SUMMARY_LEN);

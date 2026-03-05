@@ -142,4 +142,46 @@ describe("Windows credential threats", () => {
 		const ids = matchCommand(engine, "netsh wlan show profiles");
 		expect(ids.filter((id) => id === "CLT-WIN-CRED-009")).toEqual([]);
 	});
+
+	// --- Additional FP coverage ---
+
+	it("does not match cmdkey /list (001 FP)", () => {
+		const ids = matchCommand(engine, "cmdkey /list");
+		expect(ids).not.toContain("CLT-WIN-CRED-001");
+	});
+
+	it("does not match ConvertTo-SecureString without -AsPlainText (002 FP)", () => {
+		const ids = matchCommand(engine, "ConvertTo-SecureString (Read-Host -AsSecureString)");
+		expect(ids).not.toContain("CLT-WIN-CRED-002");
+	});
+
+	it("does not match type for .txt file (003 FP)", () => {
+		const ids = matchCommand(engine, "type config.txt");
+		expect(ids).not.toContain("CLT-WIN-CRED-003");
+	});
+
+	it("does not match Get-Content for .log file (003 FP)", () => {
+		const ids = matchCommand(engine, "Get-Content app.log");
+		expect(ids).not.toContain("CLT-WIN-CRED-003");
+	});
+
+	it("does not match [Environment]::GetEnvironmentVariable (004 FP)", () => {
+		const ids = matchCommand(engine, "[Environment]::GetEnvironmentVariable('PATH')");
+		expect(ids).not.toContain("CLT-WIN-CRED-004");
+	});
+
+	it("does not match $env:GOPATH assignment (005 FP)", () => {
+		const ids = matchCommand(engine, "$env:GOPATH = '/home/user/go'");
+		expect(ids).not.toContain("CLT-WIN-CRED-005");
+	});
+
+	it("does not match $env:NODE_ENV assignment (005 FP)", () => {
+		const ids = matchCommand(engine, "$env:NODE_ENV = 'production'");
+		expect(ids).not.toContain("CLT-WIN-CRED-005");
+	});
+
+	it("does not match reg query HKLM\\SAM (007 FP)", () => {
+		const ids = matchCommand(engine, "reg query HKLM\\SAM");
+		expect(ids).not.toContain("CLT-WIN-CRED-007");
+	});
 });

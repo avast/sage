@@ -9,9 +9,15 @@
  */
 
 import { readdir, stat, unlink } from "node:fs/promises";
-import { atomicWriteJson, getFileContent, type Logger, nullLogger, resolvePath } from "@sage/core";
-
-const SAGE_DIR = "~/.sage";
+import { join } from "node:path";
+import {
+	atomicWriteJson,
+	getFileContent,
+	type Logger,
+	nullLogger,
+	resolvePath,
+	SAGE_DIR,
+} from "@sage/core";
 
 const PENDING_STALE_MS = 60 * 60 * 1000; // 1 hour
 const CONSUMED_TTL_MS = 10 * 60 * 1000; // 10 minutes
@@ -45,12 +51,16 @@ function sanitizeSessionId(sessionId: string): string {
 	return sessionId.replace(/[^a-zA-Z0-9-]/g, "_");
 }
 
+function resolvedSageDir(): string {
+	return resolvePath(SAGE_DIR);
+}
+
 function pendingPath(sessionId: string): string {
-	return `${SAGE_DIR}/pending-approvals-${sanitizeSessionId(sessionId)}.json`;
+	return join(resolvedSageDir(), `pending-approvals-${sanitizeSessionId(sessionId)}.json`);
 }
 
 function consumedPath(sessionId: string): string {
-	return `${SAGE_DIR}/consumed-approvals-${sanitizeSessionId(sessionId)}.json`;
+	return join(resolvedSageDir(), `consumed-approvals-${sanitizeSessionId(sessionId)}.json`);
 }
 
 async function loadJson<T>(path: string): Promise<T | null> {
@@ -198,8 +208,7 @@ export async function removeConsumedApproval(
 
 async function listSessionFiles(prefix: string): Promise<string[]> {
 	try {
-		const dir = resolvePath(SAGE_DIR);
-		const entries = await readdir(dir);
+		const entries = await readdir(resolvedSageDir());
 		return entries.filter((f) => f.startsWith(prefix) && f.endsWith(".json"));
 	} catch {
 		return [];
@@ -213,10 +222,11 @@ export async function findConsumedApprovalAcrossSessions(
 ): Promise<ConsumedApproval | null> {
 	const files = await listSessionFiles("consumed-approvals-");
 	const key = consumedKey(artifactType, artifact);
+	const dir = resolvedSageDir();
 
 	for (const file of files) {
 		try {
-			const path = `${SAGE_DIR}/${file}`;
+			const path = join(dir, file);
 			let store = (await loadJson<ConsumedStore>(path)) ?? {};
 			store = pruneExpiredConsumed(store);
 			await saveOrDelete(path, store);
@@ -237,10 +247,11 @@ export async function removeConsumedApprovalAcrossSessions(
 ): Promise<void> {
 	const files = await listSessionFiles("consumed-approvals-");
 	const key = consumedKey(artifactType, artifact);
+	const dir = resolvedSageDir();
 
 	for (const file of files) {
 		try {
-			const path = `${SAGE_DIR}/${file}`;
+			const path = join(dir, file);
 			let store = (await loadJson<ConsumedStore>(path)) ?? {};
 			store = pruneExpiredConsumed(store);
 			if (key in store) {
@@ -257,7 +268,7 @@ export async function removeConsumedApprovalAcrossSessions(
 
 export async function pruneStaleSessionFiles(logger: Logger = nullLogger): Promise<void> {
 	try {
-		const dir = resolvePath(SAGE_DIR);
+		const dir = resolvedSageDir();
 		const entries = await readdir(dir);
 		const now = Date.now();
 
@@ -270,11 +281,11 @@ export async function pruneStaleSessionFiles(logger: Logger = nullLogger): Promi
 			}
 
 			try {
-				const fullPath = `${dir}/${file}`;
+				const fullPath = join(dir, file);
 				const info = await stat(fullPath);
 				if (now - info.mtimeMs < STALE_FILE_MS) continue;
 
-				const path = `${SAGE_DIR}/${file}`;
+				const path = join(dir, file);
 				if (file.startsWith("pending-approvals-")) {
 					let store = (await loadJson<PendingStore>(path)) ?? {};
 					store = pruneStalePending(store);

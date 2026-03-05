@@ -38,15 +38,7 @@ describe("persistence threats", () => {
 		expect(ids).toContain("CLT-PERSIST-003");
 	});
 
-	it("detects LaunchAgents plist copy", () => {
-		const ids = matchCommand(engine, "cp evil.plist ~/Library/LaunchAgents/com.evil.agent.plist");
-		expect(ids).toContain("CLT-PERSIST-004");
-	});
-
-	it("detects LaunchDaemons plist copy", () => {
-		const ids = matchCommand(engine, "cp evil.plist /Library/LaunchDaemons/com.evil.daemon.plist");
-		expect(ids).toContain("CLT-PERSIST-004");
-	});
+	// LaunchAgent/LaunchDaemon tests moved to mac-persistence-threats.test.ts (CLT-MAC-PERSIST-001)
 
 	it("detects systemctl enable", () => {
 		const ids = matchCommand(engine, "systemctl enable evil-service");
@@ -83,5 +75,56 @@ describe("persistence threats", () => {
 	it("does not match echo hello", () => {
 		const ids = matchCommand(engine, "echo hello world");
 		expect(ids.filter((id) => id.startsWith("CLT-PERSIST"))).toEqual([]);
+	});
+
+	// --- at job scheduling (CLT-PERSIST-008) ---
+
+	it("detects at -f scheduling (008)", () => {
+		expect(matchCommand(engine, "at -f /tmp/evil.sh now + 1 minute")).toContain("CLT-PERSIST-008");
+	});
+
+	it("detects at midnight (008)", () => {
+		expect(matchCommand(engine, "at midnight -f /tmp/evil.sh")).toContain("CLT-PERSIST-008");
+	});
+
+	it("does not match atq (list jobs, harmless) (008 neg)", () => {
+		const ids = matchCommand(engine, "atq");
+		expect(ids.filter((id) => id === "CLT-PERSIST-008")).toEqual([]);
+	});
+
+	// --- FN coverage ---
+
+	// CLT-PERSIST-001: write/append to shell RC file
+	it("detects echo append to $HOME/.bashrc (001)", () => {
+		const ids = matchCommand(engine, 'echo "evil" >> $HOME/.bashrc');
+		expect(ids).toContain("CLT-PERSIST-001");
+	});
+
+	it("detects cat redirect to ~/.zshenv (001)", () => {
+		const ids = matchCommand(engine, "cat payload > ~/.zshenv");
+		expect(ids).toContain("CLT-PERSIST-001");
+	});
+
+	// CLT-PERSIST-007: additional variants
+	it("detects printf append to ~/.profile (007)", () => {
+		const ids = matchCommand(engine, "printf '%s\\n' 'export PATH=/evil' >> ~/.profile");
+		expect(ids).toContain("CLT-PERSIST-007");
+	});
+
+	it("detects echo append to ~/.bash_profile (007)", () => {
+		const ids = matchCommand(engine, 'echo "backdoor" >> ~/.bash_profile');
+		expect(ids).toContain("CLT-PERSIST-007");
+	});
+
+	// --- FP coverage ---
+
+	it("does not match grep on bashrc (001 FP)", () => {
+		const ids = matchCommand(engine, "grep PATH ~/.bashrc");
+		expect(ids).not.toContain("CLT-PERSIST-001");
+	});
+
+	it("does not match echo to non-RC file (007 FP)", () => {
+		const ids = matchCommand(engine, 'echo "hello" >> /tmp/output.txt');
+		expect(ids).not.toContain("CLT-PERSIST-007");
 	});
 });

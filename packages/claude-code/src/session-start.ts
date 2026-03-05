@@ -7,24 +7,11 @@
 
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import {
-	checkForUpdate,
-	formatSessionStartFindings,
-	type Logger,
-	type PluginScanResult,
-	pruneOrphanedTmpFiles,
-	resolvePath,
-	runSessionStartScan,
-} from "@sage/core";
+import { discoverPlugins, type Logger, runPluginScan } from "@sage/core";
 import pino from "pino";
 import { pruneStaleSessionFiles } from "./approval-tracker.js";
-import { formatStartupClean, formatThreatBanner } from "./format.js";
 
 const logger: Logger = pino({ level: "warn" }, pino.destination(2));
-
-export function formatFindings(results: PluginScanResult[]): string {
-	return formatSessionStartFindings(results);
-}
 
 function getPluginRoot(): string {
 	// When bundled by esbuild into CJS, __dirname points to packages/claude-code/dist/
@@ -47,31 +34,28 @@ function getPluginManifest(pluginRoot: string): { name: string | null; version: 
 
 async function main(): Promise<void> {
 	await pruneStaleSessionFiles(logger);
-	await pruneOrphanedTmpFiles(resolvePath("~/.sage"));
 
 	const pluginRoot = getPluginRoot();
 	const threatsDir = join(pluginRoot, "threats");
 	const allowlistsDir = join(pluginRoot, "allowlists");
 	const manifest = getPluginManifest(pluginRoot);
 
-	const [resultsWithFindings, versionCheck] = await Promise.all([
-		runSessionStartScan({
-			threatsDir,
-			allowlistsDir,
-			sageVersion: manifest.version,
-			excludePluginPrefixes: manifest.name ? [`${manifest.name}@`] : undefined,
-			logger,
-		}),
-		checkForUpdate(manifest.version, logger),
-	]);
-
-	if (resultsWithFindings.length === 0) {
-		const cleanMsg = formatStartupClean(manifest.version, versionCheck);
-		process.stdout.write(`${JSON.stringify({ systemMessage: cleanMsg })}\n`);
-		return;
+	// Discover plugins and filter out self
+	let plugins = await discoverPlugins(undefined, logger);
+	if (manifest.name) {
+		const prefix = `${manifest.name}@`;
+		plugins = plugins.filter((p) => !p.key.startsWith(prefix));
 	}
 
-	const statusMsg = formatThreatBanner(manifest.version, resultsWithFindings, versionCheck);
+	const statusMsg = await runPluginScan(
+		logger,
+		"session",
+		plugins,
+		threatsDir,
+		allowlistsDir,
+		manifest.version,
+		"claude-code",
+	);
 	process.stdout.write(`${JSON.stringify({ systemMessage: statusMsg })}\n`);
 }
 

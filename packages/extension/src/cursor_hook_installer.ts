@@ -11,6 +11,7 @@ import type {
 } from "./managedHooks.js";
 
 const MANAGED_MARKER = "--managed-by sage-cursor";
+const UNSAFE_SHIM_PATH_PATTERN = /["`$;&|<>\r\n\0%!]/;
 
 type HookEntry = Record<string, unknown> & { command?: string };
 type HookMap = Record<string, HookEntry[]>;
@@ -113,11 +114,7 @@ async function resolveRunnerPath(context: vscode.ExtensionContext): Promise<stri
 }
 
 function resolveNodeRuntimePath(): string {
-	const vscodeNode = process.env.VSCODE_NODE_EXEC_PATH?.trim();
-	if (vscodeNode) {
-		return vscodeNode;
-	}
-	return process.execPath;
+	return process.env.VSCODE_NODE_EXEC_PATH?.trim() || process.execPath;
 }
 
 async function buildHookCommand(
@@ -128,8 +125,6 @@ async function buildHookCommand(
 	const cursorConfigDir = path.dirname(configPath);
 	const shimPath = await createHookShim(cursorConfigDir, nodePath, runnerPath);
 	if (process.platform === "win32") {
-		// Cursor evaluates hook commands in PowerShell pipelines on Windows.
-		// A quoted script path must be invoked with `&` to avoid parser errors.
 		return `& ${quote(shimPath)} cursor ${MANAGED_MARKER}`;
 	}
 	return `${quote(shimPath)} cursor ${MANAGED_MARKER}`;
@@ -140,6 +135,9 @@ async function createHookShim(
 	nodePath: string,
 	runnerPath: string,
 ): Promise<string> {
+	assertSafePathForShim(nodePath, "Node runtime");
+	assertSafePathForShim(runnerPath, "Hook runner");
+
 	const hooksDir = path.join(cursorConfigDir, "hooks");
 	const posixShim = path.join(hooksDir, "sage-hook");
 	const windowsShim = path.join(hooksDir, "sage-hook.cmd");
@@ -161,6 +159,15 @@ async function createHookShim(
 	return process.platform === "win32" ? windowsShim : posixShim;
 }
 
+function assertSafePathForShim(pathValue: string, label: string): void {
+	if (!pathValue) {
+		throw new Error(`${label} path is empty.`);
+	}
+	if (UNSAFE_SHIM_PATH_PATTERN.test(pathValue)) {
+		throw new Error(`${label} path contains unsupported characters for generated hook shims.`);
+	}
+}
+
 function upsertManagedHooks(existing: CursorHooksFile, command: string): CursorHooksFile {
 	const hooks = { ...existing.hooks };
 
@@ -169,7 +176,7 @@ function upsertManagedHooks(existing: CursorHooksFile, command: string): CursorH
 		timeout: 30,
 	});
 	hooks.preToolUse = appendManaged(hooks.preToolUse, {
-		matcher: "Write|Delete|Edit",
+		matcher: "Write|Delete|Edit|WebFetch",
 		command,
 		timeout: 30,
 	});

@@ -56,11 +56,20 @@ pnpm test:e2e:cursor
 pnpm test:e2e:vscode
 ```
 
+Cursor headless agent coverage in `pnpm test:e2e:cursor` additionally requires:
+
+- `agent` CLI in `PATH` (or `SAGE_AGENT_PATH`)
+- Valid agent auth (`agent login` or `CURSOR_API_KEY`)
+
 Optional executable overrides:
 
 - `SAGE_CURSOR_PATH` - absolute path to Cursor executable
+- `SAGE_AGENT_PATH` - absolute path to the `agent` CLI used by Cursor headless E2E
 - `SAGE_VSCODE_PATH` - absolute path to VS Code executable
 - `VSCODE_EXECUTABLE_PATH` - alternate VS Code executable override
+
+If the `agent` CLI is missing or unauthenticated, only the Cursor headless agent sub-suite is skipped; other extension host E2E tests continue.
+Extension hooks always exit with code `0`. The host reads the JSON response to determine whether to block the tool call.
 
 ## Build Details
 

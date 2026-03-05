@@ -193,4 +193,51 @@ describe("Windows obfuscation threats", () => {
 	it("detects powershell XOR decryption (WIN-OBFUS-016)", () => {
 		expect(matchCommand(engine, "powershell $data -bxor 'key'")).toContain("CLT-WIN-OBFUS-016");
 	});
+
+	// --- Additional FP coverage ---
+
+	it("does not match powershell -WindowStyle Normal (003 FP)", () => {
+		const ids = matchCommand(engine, "powershell -WindowStyle Normal -File script.ps1");
+		expect(ids).not.toContain("CLT-WIN-OBFUS-003");
+	});
+
+	it("does not match -ExecutionPolicy Bypass without -NoProfile (004 FP)", () => {
+		const ids = matchCommand(engine, "powershell -ExecutionPolicy Bypass -File script.ps1");
+		expect(ids).not.toContain("CLT-WIN-OBFUS-004");
+	});
+
+	it("does not match normal [char] cast without -join (005 FP)", () => {
+		const ids = matchCommand(engine, "[char]65");
+		expect(ids).not.toContain("CLT-WIN-OBFUS-005");
+	});
+
+	it("does not match NTFS path with normal colon (010 FP)", () => {
+		const ids = matchCommand(engine, "echo test > C:\\output.txt");
+		expect(ids).not.toContain("CLT-WIN-OBFUS-010");
+	});
+
+	it("does not match type to normal file (011 FP)", () => {
+		const ids = matchCommand(engine, "type readme.txt > output.txt");
+		expect(ids).not.toContain("CLT-WIN-OBFUS-011");
+	});
+
+	it("does not match mkdir with normal name (012 FP)", () => {
+		const ids = matchCommand(engine, "mkdir myproject");
+		expect(ids).not.toContain("CLT-WIN-OBFUS-012");
+	});
+
+	it("does not match cmd without caret obfuscation (013 FP)", () => {
+		const ids = matchCommand(engine, "cmd /c echo hello world");
+		expect(ids).not.toContain("CLT-WIN-OBFUS-013");
+	});
+
+	it("does not match powershell with normal backtick newline (015 FP)", () => {
+		const ids = matchCommand(engine, "powershell Write-Host `n");
+		expect(ids).not.toContain("CLT-WIN-OBFUS-015");
+	});
+
+	it("does not match powershell numeric XOR (016 FP)", () => {
+		const ids = matchCommand(engine, "powershell $result = 0xFF -bxor 0x0F");
+		expect(ids).not.toContain("CLT-WIN-OBFUS-016");
+	});
 });

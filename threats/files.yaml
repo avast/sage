@@ -1,7 +1,7 @@
 # Sensitive file path threat patterns for Sage
 # Author: Gen Digital Inc.
 # License: DRL-1.1 (see threats/LICENSE)
-# Detects Write/Edit operations targeting security-sensitive files
+# Detects Read/Write/Edit/Delete operations targeting security-sensitive files
 
 # --- System auth files ---
 - id: "CLT-FILE-001"
@@ -11,7 +11,7 @@
   action: block
   pattern: "(/etc/passwd|/etc/shadow|/etc/sudoers)"
   match_on: file_path
-  title: "Write to system authentication file"
+  title: "Access system authentication file"
   expires_at: null
   revoked: false
 
@@ -23,7 +23,7 @@
   action: block
   pattern: "\\.ssh/authorized_keys"
   match_on: file_path
-  title: "Write to SSH authorized_keys (unauthorized access persistence)"
+  title: "Access SSH authorized_keys (unauthorized access persistence)"
   expires_at: null
   revoked: false
 
@@ -35,7 +35,7 @@
   action: require_approval
   pattern: "\\.ssh/(id_rsa|id_ed25519|id_ecdsa|id_dsa|config)$"
   match_on: file_path
-  title: "Write to SSH key or config file"
+  title: "Access SSH key or config file"
   expires_at: null
   revoked: false
 
@@ -47,19 +47,7 @@
   action: require_approval
   pattern: "\\.(bashrc|zshrc|profile|bash_profile|zprofile|zshenv)$"
   match_on: file_path
-  title: "Write to shell RC file (persistence mechanism)"
-  expires_at: null
-  revoked: false
-
-# --- macOS LaunchAgents/LaunchDaemons ---
-- id: "CLT-FILE-005"
-  category: tool
-  severity: high
-  confidence: 0.90
-  action: block
-  pattern: "(LaunchAgents|LaunchDaemons)/.*\\.plist$"
-  match_on: file_path
-  title: "Write to macOS LaunchAgent/LaunchDaemon plist"
+  title: "Access shell RC file (persistence mechanism)"
   expires_at: null
   revoked: false
 
@@ -71,7 +59,7 @@
   action: require_approval
   pattern: "(/etc/cron\\.(d|daily|hourly|weekly|monthly)/|/var/spool/cron/)"
   match_on: file_path
-  title: "Write to cron directory"
+  title: "Access cron directory"
   expires_at: null
   revoked: false
 
@@ -83,19 +71,23 @@
   action: require_approval
   pattern: "/etc/systemd/system/"
   match_on: file_path
-  title: "Write to systemd service unit file"
+  title: "Access systemd service unit file"
   expires_at: null
   revoked: false
 
 # --- Credential/env files ---
+# NOTE: Uses allowlist approach (explicit suffix enumeration) unlike CLT-CRED-003's
+# denylist approach (negative lookahead). This means unknown suffixes like .env.ci
+# match CRED-003 but not FILE-008 — intentional, since file_path matching is more
+# targeted than command-string matching.
 - id: "CLT-FILE-008"
   category: secrets
   severity: high
   confidence: 0.85
   action: require_approval
-  pattern: "(\\.env(\\.local|\\.production|\\.staging|\\.development)?|\\.aws/credentials|\\.netrc|\\.pgpass)$"
+  pattern: "((^|[\\/\\\\])\\.env(\\.local|\\.production|\\.prod|\\.staging|\\.stage|\\.development|\\.dev|\\.test)?|\\.aws/credentials|\\.netrc|\\.pgpass)$"
   match_on: file_path
-  title: "Write to credential or environment file"
+  title: "Access credential or environment file"
   expires_at: null
   revoked: false
 
@@ -107,6 +99,6 @@
   action: require_approval
   pattern: "\\.git/hooks/"
   match_on: file_path
-  title: "Write to git hook (potential code execution on git events)"
+  title: "Access git hook (potential code execution on git events)"
   expires_at: null
   revoked: false

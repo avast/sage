@@ -3,6 +3,7 @@
  */
 
 import type {
+	AmsiCheckResult,
 	Decision,
 	HeuristicMatch,
 	PackageCheckResult,
@@ -62,23 +63,12 @@ export class DecisionEngine {
 		this.threshold = SENSITIVITY_THRESHOLDS[sensitivity] ?? CONFIDENCE_THRESHOLD;
 	}
 
-	async decide(
-		heuristicMatchesOrSources: HeuristicMatch[] | SignalSources,
-		urlCheckResults?: UrlCheckResult[],
-	): Promise<Verdict> {
-		let sources: SignalSources;
-		if (Array.isArray(heuristicMatchesOrSources)) {
-			sources = {
-				heuristicMatches: heuristicMatchesOrSources,
-				urlCheckResults: urlCheckResults ?? [],
-			};
-		} else {
-			sources = heuristicMatchesOrSources;
-		}
+	async decide(sources: SignalSources): Promise<Verdict> {
 		const signals = this.collectSignals(
 			sources.heuristicMatches,
 			sources.urlCheckResults,
 			sources.packageCheckResults,
+			sources.amsiCheckResults,
 		);
 
 		if (signals.length === 0) {
@@ -118,6 +108,7 @@ export class DecisionEngine {
 		heuristicMatches: HeuristicMatch[],
 		urlCheckResults: UrlCheckResult[],
 		packageCheckResults?: PackageCheckResult[],
+		amsiCheckResults?: AmsiCheckResult[],
 	): Signal[] {
 		const signals: Signal[] = [];
 
@@ -171,6 +162,34 @@ export class DecisionEngine {
 
 				const signal = this.packageVerdictToSignal(pkg);
 				if (signal) signals.push(signal);
+			}
+		}
+
+		if (amsiCheckResults) {
+			for (const result of amsiCheckResults) {
+				if (result.isDetected) {
+					signals.push({
+						decision: "deny",
+						category: "malware",
+						confidence: 1.0,
+						severity: "critical",
+						source: "amsi",
+						threatId: null,
+						reason: `AMSI detected malware in ${result.contentName} (result=${result.amsiResult})`,
+						artifact: result.contentName,
+					});
+				} else if (result.isBlockedByAdmin) {
+					signals.push({
+						decision: "deny",
+						category: "malware",
+						confidence: 0.9,
+						severity: "critical",
+						source: "amsi",
+						threatId: null,
+						reason: `AMSI: content blocked by admin policy in ${result.contentName} (result=${result.amsiResult})`,
+						artifact: result.contentName,
+					});
+				}
 			}
 		}
 

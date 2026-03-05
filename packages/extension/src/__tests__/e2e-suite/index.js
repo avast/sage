@@ -19,6 +19,8 @@ const REQUIRED_CURSOR_EVENTS = [
 	"beforeReadFile",
 ];
 
+const EXPECTED_PRE_TOOL_USE_MATCHERS = ["Write", "Delete", "Edit", "WebFetch"];
+
 const host = readRequiredEnv("SAGE_E2E_HOST");
 const extensionId = readRequiredEnv("SAGE_E2E_EXTENSION_ID");
 const scopeSettingKey = readRequiredEnv("SAGE_E2E_SCOPE_SETTING_KEY");
@@ -61,6 +63,11 @@ const TEST_CASES = [
 		id: "dangerous-write-blocked",
 		name: "managed hook blocks dangerous write",
 		run: verifyHookPipelineBlocksThreat,
+	},
+	{
+		id: "hook-response-shape-consistent",
+		name: "hook responses have consistent shape across event types",
+		run: verifyHookResponseShapeAcrossEvents,
 	},
 	{
 		id: "disable-protection-removes-hooks",
@@ -124,7 +131,7 @@ async function configureWorkspaceScope() {
 		.update(scopeSettingKey, "workspace", vscode.ConfigurationTarget.Workspace);
 	await vscode.workspace
 		.getConfiguration()
-		.update("sage.hookRunnerPath", hookRunnerPath, vscode.ConfigurationTarget.Workspace);
+		.update("sage.hookRunnerPath", hookRunnerPath, vscode.ConfigurationTarget.Global);
 }
 
 async function verifyExtensionActivation() {
@@ -189,7 +196,12 @@ async function verifyHookPipelineBlocksThreat() {
 
 	const response = runHook(payload);
 	if (hookMode === "cursor") {
-		assert.equal(response.decision, "deny", "Expected Cursor hook to deny sensitive write");
+		assert.equal(response.decision, "deny", "Expected Cursor hook decision=deny");
+		assert.equal(response.permission, "deny", "Expected Cursor hook permission=deny");
+		assert.ok(
+			typeof response.reason === "string",
+			"Expected Cursor deny response to include reason",
+		);
 		return;
 	}
 
@@ -199,6 +211,71 @@ async function verifyHookPipelineBlocksThreat() {
 		decision === "deny" || decision === "ask",
 		`Expected VS Code hook decision deny|ask, got "${String(decision)}"`,
 	);
+}
+
+async function verifyHookResponseShapeAcrossEvents() {
+	if (hookMode !== "cursor") {
+		return;
+	}
+
+	assert.ok(fs.existsSync(hookRunnerPath), `Expected hook runner at ${hookRunnerPath}`);
+
+	const payloads = [
+		{
+			event: "preToolUse",
+			payload: {
+				hook_event_name: "preToolUse",
+				tool_name: "Write",
+				tool_input: {
+					file_path: "/tmp/notes.txt",
+					content: "just some notes",
+				},
+			},
+		},
+		{
+			event: "beforeShellExecution",
+			payload: {
+				hook_event_name: "beforeShellExecution",
+				command: "echo hello",
+				cwd: "/tmp",
+			},
+		},
+		{
+			event: "beforeReadFile",
+			payload: {
+				hook_event_name: "beforeReadFile",
+				file_path: "/tmp/notes.txt",
+				content: "",
+				attachments: [],
+			},
+		},
+		{
+			event: "beforeMCPExecution",
+			payload: {
+				hook_event_name: "beforeMCPExecution",
+				tool_name: "MCP",
+				tool_input: { query: "repo metadata" },
+			},
+		},
+	];
+
+	for (const { event, payload } of payloads) {
+		const response = runHook(payload);
+
+		assert.ok(
+			"decision" in response,
+			`${event}: response missing "decision" field (got keys: ${Object.keys(response).join(", ")})`,
+		);
+		assert.ok(
+			"permission" in response,
+			`${event}: response missing "permission" field (got keys: ${Object.keys(response).join(", ")})`,
+		);
+		assert.equal(
+			response.decision,
+			response.permission,
+			`${event}: "decision" (${String(response.decision)}) and "permission" (${String(response.permission)}) must match`,
+		);
+	}
 }
 
 async function verifyDisableProtection() {
@@ -216,14 +293,24 @@ function verifyCursorManagedHooks(config) {
 	const hooks = asObject(config.hooks);
 	for (const eventName of REQUIRED_CURSOR_EVENTS) {
 		const entries = Array.isArray(hooks[eventName]) ? hooks[eventName] : [];
-		const hasManagedEntry = entries.some(
+		const managedEntry = entries.find(
 			(entry) =>
 				entry &&
 				typeof entry === "object" &&
 				typeof entry.command === "string" &&
 				entry.command.includes(managedMarker),
 		);
-		assert.ok(hasManagedEntry, `Expected managed Cursor hook for event "${eventName}"`);
+		assert.ok(managedEntry, `Expected managed Cursor hook for event "${eventName}"`);
+
+		if (eventName === "preToolUse" && managedEntry) {
+			const matcher = typeof managedEntry.matcher === "string" ? managedEntry.matcher : "";
+			for (const tool of EXPECTED_PRE_TOOL_USE_MATCHERS) {
+				assert.ok(
+					matcher.includes(tool),
+					`preToolUse matcher "${matcher}" missing expected tool "${tool}"`,
+				);
+			}
+		}
 	}
 }
 
@@ -294,14 +381,19 @@ function collectManagedCommands(config) {
 
 function runHook(payload) {
 	const nodePath = process.env.VSCODE_NODE_EXEC_PATH || process.execPath;
-	const stdout = execFileSync(nodePath, [hookRunnerPath, hookMode], {
+	const options = {
 		encoding: "utf8",
 		input: `${JSON.stringify(payload)}`,
 		env: {
 			...process.env,
 			ELECTRON_RUN_AS_NODE: "1",
 		},
-	});
+	};
+	const stdout = execFileSync(nodePath, [hookRunnerPath, hookMode], options);
+	return parseHookStdout(stdout);
+}
+
+function parseHookStdout(stdout) {
 	if (!stdout.trim()) {
 		return {};
 	}

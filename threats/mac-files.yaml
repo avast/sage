@@ -1,0 +1,124 @@
+# macOS sensitive file path threat patterns for Sage
+# Author: Gen Digital Inc.
+# License: DRL-1.1 (see threats/LICENSE)
+# Detects Read/Write/Edit/Delete operations targeting macOS security-sensitive files
+
+# LaunchAgent/LaunchDaemon plist (migrated from files.yaml CLT-FILE-005)
+- id: "CLT-MAC-FILE-001"
+  category: tool
+  severity: high
+  confidence: 0.90
+  action: block
+  pattern: "(LaunchAgents|LaunchDaemons)/.*\\.plist$"
+  match_on: file_path
+  title: "Access macOS LaunchAgent/LaunchDaemon plist"
+  expires_at: null
+  revoked: false
+
+# TCC privacy permissions database
+- id: "CLT-MAC-FILE-002"
+  category: secrets
+  severity: critical
+  confidence: 0.95
+  action: block
+  pattern: "com\\.apple\\.TCC/TCC\\.db"
+  match_on: file_path
+  title: "Access TCC privacy permissions database"
+  expires_at: null
+  revoked: false
+
+# Authorization database
+- id: "CLT-MAC-FILE-003"
+  category: secrets
+  severity: critical
+  confidence: 0.95
+  action: block
+  pattern: "(/etc/authorization|/var/db/auth\\.db)"
+  match_on: file_path
+  title: "Access macOS authorization database"
+  expires_at: null
+  revoked: false
+
+# Kernel extensions
+- id: "CLT-MAC-FILE-004"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "(/Library/Extensions/|/System/Library/Extensions/).*\\.kext"
+  match_on: file_path
+  title: "Access kernel extension (.kext)"
+  expires_at: null
+  revoked: false
+
+# Security Agent Plugins
+- id: "CLT-MAC-FILE-005"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "/Library/Security/SecurityAgentPlugins/"
+  match_on: file_path
+  title: "Access SecurityAgentPlugins directory"
+  expires_at: null
+  revoked: false
+
+# Periodic scripts directory
+- id: "CLT-MAC-FILE-006"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "/etc/periodic/(daily|weekly|monthly)/"
+  match_on: file_path
+  title: "Access macOS periodic scripts directory"
+  expires_at: null
+  revoked: false
+
+# Emond rules directory
+- id: "CLT-MAC-FILE-007"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "/etc/emond\\.d/rules/"
+  match_on: file_path
+  title: "Access Event Monitor daemon rules directory"
+  expires_at: null
+  revoked: false
+
+# Safari credential/cookie stores
+- id: "CLT-MAC-FILE-008"
+  category: secrets
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "/Safari/(Cookies\\.binarycookies|LastSession\\.plist|Databases|LocalStorage)"
+  match_on: file_path
+  title: "Access Safari credential/cookie store"
+  expires_at: null
+  revoked: false
+
+# Managed Preferences (MDM profiles)
+- id: "CLT-MAC-FILE-009"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "/Library/Managed Preferences/"
+  match_on: file_path
+  title: "Access Managed Preferences (MDM profile injection)"
+  expires_at: null
+  revoked: false
+
+# Keychain files
+- id: "CLT-MAC-FILE-010"
+  category: secrets
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "/Library/Keychains/.*\\.keychain"
+  match_on: file_path
+  title: "Access system Keychain file"
+  expires_at: null
+  revoked: false

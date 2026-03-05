@@ -2,7 +2,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|WebFetch|Write|Edit",
+        "matcher": "Bash|WebFetch|Write|Edit|Read",
         "hooks": [
           {
             "type": "command",
@@ -15,7 +15,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash|WebFetch|Write|Edit",
+        "matcher": "Bash|WebFetch|Write|Edit|Read",
         "hooks": [
           {
             "type": "command",

@@ -5,7 +5,9 @@ import {
 	type Artifact,
 	evaluateToolCall,
 	extractFromBash,
+	extractFromDelete,
 	extractFromEdit,
+	extractFromRead,
 	extractFromWebFetch,
 	extractFromWrite,
 	extractUrls,
@@ -54,20 +56,16 @@ async function handleCursor(payload: unknown): Promise<void> {
 
 	const normalized = normalizeCursorCall(payload, eventName);
 	if (!normalized) {
-		writeJson(internalCursorResponse(eventName, "allow", "Sage could not normalize hook payload."));
+		writeJson(internalCursorResponse("allow", "Sage could not normalize hook payload."));
 		return;
 	}
 
 	try {
 		const verdict = await evaluateNormalizedCall(normalized);
-		writeJson(toCursorResponse(eventName, verdict));
+		writeJson(toCursorResponse(verdict));
 	} catch {
 		writeJson(
-			internalCursorResponse(
-				eventName,
-				"allow",
-				"Sage internal error; default allow policy applied.",
-			),
+			internalCursorResponse("allow", "Sage internal error; default allow policy applied."),
 		);
 	}
 }
@@ -189,7 +187,8 @@ function normalizeCursorCall(
 	}
 
 	const toolName = asString(input.tool_name) ?? "";
-	const toolInput = parseUnknownObject(input.tool_input);
+	const rawToolInput = parseUnknownObject(input.tool_input);
+	const toolInput = normalizeFileToolInput(toolName, rawToolInput);
 	return {
 		sessionId,
 		toolName: mapCursorToolToClaudeTool(toolName),
@@ -209,7 +208,8 @@ function normalizeVsCodeCall(payload: unknown): NormalizedHookCall | undefined {
 		return undefined;
 	}
 
-	const toolInput = parseUnknownObject(input.tool_input);
+	const rawToolInput = parseUnknownObject(input.tool_input);
+	const toolInput = normalizeFileToolInput(toolName, rawToolInput);
 	const sessionId =
 		asString(input.session_id) ??
 		asString(input.sessionId) ??
@@ -235,26 +235,18 @@ function extractFromVsCodeTool(toolName: string, toolInput: Record<string, unkno
 			return extractFromWrite(toolInput);
 		case "Edit":
 			return extractFromEdit(toolInput);
+		case "Read":
+			return extractFromRead(toolInput);
+		case "Delete":
+			return extractFromDelete(toolInput);
 		default:
 			return [];
 	}
 }
 
 function mapCursorToolToClaudeTool(toolName: string): string {
-	switch (toolName) {
-		case "Shell":
-			return "Bash";
-		case "Write":
-			return "Write";
-		case "Read":
-			return "Read";
-		case "Delete":
-			return "Delete";
-		case "MCP":
-			return "MCP";
-		default:
-			return toolName || "Unknown";
-	}
+	if (toolName === "Shell") return "Bash";
+	return toolName || "Unknown";
 }
 
 function extractFromCursorTool(toolName: string, toolInput: Record<string, unknown>): Artifact[] {
@@ -294,7 +286,13 @@ function normalizeWriteLikeInput(toolInput: Record<string, unknown>): Record<str
 
 function normalizeEditLikeInput(toolInput: Record<string, unknown>): Record<string, unknown> {
 	const filePath = readFilePath(toolInput);
-	const newString = asString(toolInput.new_string) ?? asString(toolInput.content) ?? "";
+	const newString =
+		asString(toolInput.new_string) ??
+		asString(toolInput.newString) ??
+		asString(toolInput.streamContent) ??
+		asString(toolInput.stream_content) ??
+		asString(toolInput.content) ??
+		"";
 	return {
 		...toolInput,
 		file_path: filePath ?? "",
@@ -302,31 +300,14 @@ function normalizeEditLikeInput(toolInput: Record<string, unknown>): Record<stri
 	};
 }
 
-function extractFromRead(toolInput: Record<string, unknown>): Artifact[] {
-	const artifacts: Artifact[] = [];
-	const filePath = readFilePath(toolInput);
-	if (filePath) {
-		artifacts.push({ type: "file_path", value: filePath, context: "read" });
+function normalizeFileToolInput(
+	toolName: string,
+	toolInput: Record<string, unknown>,
+): Record<string, unknown> {
+	if (toolName === "Read" || toolName === "Delete") {
+		return { ...toolInput, file_path: readFilePath(toolInput) ?? "" };
 	}
-
-	const content = asString(toolInput.content);
-	if (content?.trim()) {
-		const capped = content.slice(0, MAX_CONTENT_SIZE);
-		artifacts.push({ type: "content", value: capped, context: "read" });
-		for (const url of extractUrls(capped)) {
-			artifacts.push({ type: "url", value: url, context: "from_read_content" });
-		}
-	}
-
-	return artifacts;
-}
-
-function extractFromDelete(toolInput: Record<string, unknown>): Artifact[] {
-	const filePath = readFilePath(toolInput);
-	if (!filePath) {
-		return [];
-	}
-	return [{ type: "file_path", value: filePath, context: "delete" }];
+	return toolInput;
 }
 
 function extractFromMcp(toolInput: Record<string, unknown>): Artifact[] {
@@ -402,30 +383,20 @@ function readFilePath(toolInput: Record<string, unknown>): string | undefined {
 	);
 }
 
-function toCursorResponse(eventName: CursorEventName, verdict: Verdict): Record<string, unknown> {
+function toCursorResponse(verdict: Verdict): Record<string, unknown> {
+	if (verdict.decision === "allow") {
+		return { decision: "allow", permission: "allow" };
+	}
+
 	const reason = truncateReason(verdict);
-
-	if (eventName === "preToolUse") {
-		if (verdict.decision === "allow") {
-			return { decision: "allow" };
-		}
-		return { decision: "deny", reason };
-	}
-
-	if (eventName === "beforeReadFile") {
-		if (verdict.decision === "allow") {
-			return { permission: "allow" };
-		}
-		return { permission: "deny", user_message: reason };
-	}
+	const agentMessage = `Sage ${verdict.decision === "deny" ? "blocked" : "flagged"} this action (${verdict.severity}).`;
 
 	return {
-		permission: verdict.decision,
-		user_message: verdict.decision === "allow" ? undefined : reason,
-		agent_message:
-			verdict.decision === "allow"
-				? undefined
-				: `Sage ${verdict.decision === "deny" ? "blocked" : "flagged"} this action (${verdict.severity}).`,
+		decision: verdict.decision === "ask" ? "ask" : "deny",
+		permission: verdict.decision === "ask" ? "ask" : "deny",
+		reason,
+		user_message: reason,
+		agent_message: agentMessage,
 	};
 }
 
@@ -444,20 +415,15 @@ function toVsCodeResponse(verdict: Verdict): Record<string, unknown> {
 }
 
 function internalCursorResponse(
-	eventName: CursorEventName,
 	decision: "allow" | "deny",
 	reason: string,
 ): Record<string, unknown> {
-	if (eventName === "preToolUse") {
-		return { decision, reason };
-	}
-	if (eventName === "beforeReadFile") {
-		return { permission: decision, user_message: reason };
-	}
 	return {
+		decision,
 		permission: decision,
+		reason,
 		user_message: reason,
-		agent_message: "Sage internal error policy applied.",
+		agent_message: decision === "allow" ? undefined : "Sage internal error policy applied.",
 	};
 }
 

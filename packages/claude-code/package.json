@@ -1,7 +1,7 @@
 {
   "name": "@sage/claude-code",
   "license": "Apache-2.0",
-  "version": "0.4.4",
+  "version": "0.5.1",
   "type": "module",
   "scripts": {
     "build": "node esbuild.config.js",
@@ -12,6 +12,9 @@
     "@sage/core": "workspace:*",
     "pino": "^9.6.0",
     "zod": "^3.24.0"
+  },
+  "optionalDependencies": {
+    "koffi": "^2.9.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

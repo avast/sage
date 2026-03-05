@@ -1,37 +1,39 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { nullLogger } from "@sage/core";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ApprovalStore } from "../approval-store.js";
+import { ApprovalStore } from "@sage/core";
+import { describe, expect, it } from "vitest";
 import { createSageApproveTool } from "../gate-tool.js";
 
 describe("sage_approve gate tool", () => {
-	let dir: string;
-	let approvalStore: ApprovalStore;
-
-	beforeEach(async () => {
-		dir = await mkdtemp(join(tmpdir(), "sage-gate-test-"));
-		approvalStore = new ApprovalStore(nullLogger, join(dir, "approvals.json"));
-		await approvalStore.load();
-	});
-
-	afterEach(async () => {
-		await rm(dir, { recursive: true, force: true });
-	});
-
 	it("approve stores approval and returns success", async () => {
+		const approvalStore = new ApprovalStore();
+		// Must have a pending entry first
+		approvalStore.setPending("test-id", {
+			artifacts: [{ type: "command", value: "chmod 777 ./x" }],
+			createdAt: Date.now(),
+		});
+
 		const tool = createSageApproveTool(approvalStore);
 		const result = await tool.execute("call-1", {
 			actionId: "test-id",
 			approved: true,
 		});
 
-		expect(result.content[0]?.text).toBe("Approved. Retry the tool call.");
+		expect(result.content[0]?.text).toContain("Approved action test-id");
 		expect(approvalStore.isApproved("test-id")).toBe(true);
 	});
 
+	it("approve with no pending entry returns not-found message", async () => {
+		const approvalStore = new ApprovalStore();
+		const tool = createSageApproveTool(approvalStore);
+		const result = await tool.execute("call-1", {
+			actionId: "nonexistent",
+			approved: true,
+		});
+
+		expect(result.content[0]?.text).toContain("No pending Sage approval");
+	});
+
 	it("reject returns rejection message", async () => {
+		const approvalStore = new ApprovalStore();
 		const tool = createSageApproveTool(approvalStore);
 		const result = await tool.execute("call-1", {
 			actionId: "test-id",
@@ -39,10 +41,10 @@ describe("sage_approve gate tool", () => {
 		});
 
 		expect(result.content[0]?.text).toBe("Rejected by user.");
-		expect(approvalStore.isApproved("test-id")).toBe(false);
 	});
 
 	it("tool schema matches expected shape", () => {
+		const approvalStore = new ApprovalStore();
 		const tool = createSageApproveTool(approvalStore);
 		expect(tool.name).toBe("sage_approve");
 		expect(tool.description).toBeTruthy();

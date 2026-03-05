@@ -3,7 +3,7 @@
  * Sage-flagged tool calls after user confirmation.
  */
 
-import type { ApprovalStore } from "./approval-store.js";
+import { type ApprovalStore, approveAction } from "@sage/core";
 
 export interface ToolDefinition {
 	name: string;
@@ -35,14 +35,15 @@ export function createSageApproveTool(approvalStore: ApprovalStore): ToolDefinit
 			required: ["actionId", "approved"],
 		},
 		async execute(_toolCallId, params) {
-			if (params.approved) {
-				await approvalStore.approve(params.actionId);
+			if (!params.approved) {
+				approvalStore.deletePending(params.actionId);
 				return {
-					content: [{ type: "text", text: "Approved. Retry the tool call." }],
+					content: [{ type: "text", text: "Rejected by user." }],
 				};
 			}
+			const msg = await approveAction(approvalStore, params.actionId);
 			return {
-				content: [{ type: "text", text: "Rejected by user." }],
+				content: [{ type: "text", text: msg }],
 			};
 		},
 	};

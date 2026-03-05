@@ -11,6 +11,7 @@ import type {
 } from "./managedHooks.js";
 
 const MANAGED_MARKER = "--managed-by sage-vscode";
+const UNSAFE_SHIM_PATH_PATTERN = /["`$;&|<>\r\n\0%!]/;
 
 type HookCommandEntry = Record<string, unknown> & { command?: string };
 type HookMatcherEntry = Record<string, unknown> & { hooks?: HookCommandEntry[] };
@@ -104,11 +105,7 @@ async function resolveRunnerPath(context: vscode.ExtensionContext): Promise<stri
 }
 
 function resolveNodeRuntimePath(): string {
-	const vscodeNode = process.env.VSCODE_NODE_EXEC_PATH?.trim();
-	if (vscodeNode) {
-		return vscodeNode;
-	}
-	return process.execPath;
+	return process.env.VSCODE_NODE_EXEC_PATH?.trim() || process.execPath;
 }
 
 async function buildHookCommand(
@@ -131,6 +128,9 @@ async function createHookShim(
 	nodePath: string,
 	runnerPath: string,
 ): Promise<string> {
+	assertSafePathForShim(nodePath, "Node runtime");
+	assertSafePathForShim(runnerPath, "Hook runner");
+
 	const hooksDir = path.join(claudeConfigDir, "hooks");
 	const posixShim = path.join(hooksDir, "sage-hook");
 	const windowsShim = path.join(hooksDir, "sage-hook.cmd");
@@ -152,10 +152,19 @@ async function createHookShim(
 	return process.platform === "win32" ? windowsShim : posixShim;
 }
 
+function assertSafePathForShim(pathValue: string, label: string): void {
+	if (!pathValue) {
+		throw new Error(`${label} path is empty.`);
+	}
+	if (UNSAFE_SHIM_PATH_PATTERN.test(pathValue)) {
+		throw new Error(`${label} path contains unsupported characters for generated hook shims.`);
+	}
+}
+
 function upsertManagedHooks(existing: SettingsObject, command: string): SettingsObject {
 	const hooks = cloneHookSettings(existing.hooks);
 	hooks.PreToolUse = appendManaged(asMatcherEntries(hooks.PreToolUse), {
-		matcher: "Bash|WebFetch|Write|Edit",
+		matcher: "Bash|WebFetch|Write|Edit|Read|Delete",
 		hooks: [
 			{
 				type: "command",

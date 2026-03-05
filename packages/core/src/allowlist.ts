@@ -101,7 +101,7 @@ export async function saveAllowlist(
 	allowlist: Allowlist,
 	config: AllowlistConfig,
 	logger: Logger = nullLogger,
-): Promise<void> {
+): Promise<boolean> {
 	const path = resolvePath(config.path);
 
 	const serializeEntries = (entries: Record<string, AllowlistEntry>) =>
@@ -124,8 +124,10 @@ export async function saveAllowlist(
 
 	try {
 		await atomicWriteJson(path, data);
+		return true;
 	} catch (e) {
 		logger.warn(`Failed to save allowlist to ${path}`, { error: String(e) });
+		return false;
 	}
 }
 

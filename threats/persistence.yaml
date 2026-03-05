@@ -38,18 +38,6 @@
   expires_at: null
   revoked: false
 
-# --- macOS LaunchAgent/LaunchDaemon ---
-- id: "CLT-PERSIST-004"
-  category: tool
-  severity: high
-  confidence: 0.90
-  action: block
-  pattern: "(LaunchAgents|LaunchDaemons)/.*\\.plist"
-  match_on: command
-  title: "macOS LaunchAgent/LaunchDaemon persistence"
-  expires_at: null
-  revoked: false
-
 # --- systemd service manipulation ---
 - id: "CLT-PERSIST-005"
   category: tool
@@ -83,5 +71,17 @@
   pattern: "(echo|printf)\\s+.*>>\\s*~?/?(\\$HOME/)?\\.?(bashrc|zshrc|profile|bash_profile)"
   match_on: command
   title: "Echo/printf append to shell RC file (code injection persistence)"
+  expires_at: null
+  revoked: false
+
+# --- at job scheduling ---
+- id: "CLT-PERSIST-008"
+  category: tool
+  severity: high
+  confidence: 0.80
+  action: require_approval
+  pattern: "\\bat\\b\\s+(-f\\s+|now|midnight|noon|teatime)"
+  match_on: command
+  title: "At-job scheduling (persistence)"
   expires_at: null
   revoked: false

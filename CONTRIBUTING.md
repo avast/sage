@@ -7,6 +7,7 @@ Thank you for your interest in contributing to Sage.
 ```bash
 git clone https://github.com/avast/sage
 cd sage
+git checkout pre-release
 pnpm install
 pnpm build
 pnpm test
@@ -16,11 +17,11 @@ Requires Node.js >= 18 and pnpm >= 9. See [Development](docs/development.md) for
 
 ## Making Changes
 
-1. Create a branch from `main`
+1. Create a branch from `pre-release`
 2. Make your changes
 3. Run `pnpm test` and `pnpm check` to verify
 4. Run `pnpm lint:fix` to format code
-5. Submit a pull request
+5. Submit a pull request against `pre-release`
 
 Keep PRs focused on a single change. Include tests for new functionality.
 
@@ -51,6 +52,7 @@ Threat rules live in `threats/*.yaml`. Each rule must include:
 | `title` | string | Human-readable description |
 | `expires_at` | string or null | ISO 8601 date or `null` for permanent |
 | `revoked` | boolean | Set `true` to disable without removing |
+| `case_insensitive` | boolean | Match pattern case-insensitively (default: `false`) |
 
 See [Threat Rules](docs/threat-rules.md) for the full format reference and examples.
 
@@ -60,6 +62,13 @@ See [Threat Rules](docs/threat-rules.md) for the full format reference and examp
 - **Fail-open:** Every error path must return an `allow` verdict
 - **Formatting:** Biome handles linting and formatting (tabs, double quotes, semicolons)
 - **Testing:** Add tests for new functionality. Unit tests go in `packages/core/src/__tests__/`
+
+## Branch Policy
+
+- **`main`** is the release/distribution branch. It is what users install from the Claude Code marketplace. PRs should not target `main`.
+- **`pre-release`** is the contribution branch. All external PRs should target `pre-release`. After a further security review the contributions are then synced back to `main` in controlled releases.
+
+This separation ensures that code merged from PRs goes through a review and security audit cycle before reaching users.
 
 ## Reporting Issues
 

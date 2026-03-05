@@ -3,6 +3,9 @@
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@10.29.3",
+  "pnpm": {
+    "onlyBuiltDependencies": ["koffi"]
+  },
   "engines": {
     "node": ">=18"
   },
@@ -22,10 +25,12 @@
     "build:sea": "bash packages/claude-code/scripts/build-sea.sh",
     "package:vsix": "pnpm -C packages/extension run package:vsix",
     "clean": "pnpm -r run clean",
-    "bump": "node scripts/bump.mjs"
+    "changeset": "changeset",
+    "version": "changeset version && node scripts/sync-manifests.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
+    "@changesets/cli": "^2.29.8",
     "typescript": "^5.9.0",
     "vitest": "^4.0.0"
   }

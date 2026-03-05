@@ -2,8 +2,10 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
+	type AgentRuntime,
 	ConfigSchema,
 	checkForUpdate,
+	getInstallationId,
 	getRecentEntries,
 	loadConfig,
 	pruneOrphanedTmpFiles,
@@ -38,7 +40,17 @@ export function activateManagedHooksExtension(
 
 	const version = (context.extension.packageJSON as Record<string, unknown>).version as string;
 	if (version) {
-		checkForUpdate(version)
+		const agentRuntime: AgentRuntime = target.hostName === "Cursor" ? "cursor" : "vscode";
+		const sageDirPath = resolvePath("~/.sage");
+		getInstallationId(sageDirPath)
+			.catch(() => undefined)
+			.then((iid) =>
+				checkForUpdate(version, undefined, undefined, {
+					agentRuntime,
+					agentRuntimeVersion: vscode.version,
+					iid,
+				}),
+			)
 			.then((result) => {
 				if (result?.updateAvailable) {
 					void vscode.window.showInformationMessage(

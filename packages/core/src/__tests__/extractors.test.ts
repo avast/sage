@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
 	extractFromBash,
+	extractFromDelete,
 	extractFromEdit,
+	extractFromRead,
 	extractFromWebFetch,
 	extractFromWrite,
 	extractUrls,
@@ -268,6 +270,51 @@ describe("extractFromWrite", () => {
 
 	it("handles empty input", () => {
 		expect(extractFromWrite({})).toEqual([]);
+	});
+});
+
+describe("extractFromRead", () => {
+	it("extracts file_path with read context", () => {
+		const artifacts = extractFromRead({ file_path: "/etc/shadow" });
+		const filePaths = artifacts.filter((a) => a.type === "file_path");
+		expect(filePaths).toHaveLength(1);
+		expect(filePaths[0]?.value).toBe("/etc/shadow");
+		expect(filePaths[0]?.context).toBe("read");
+	});
+
+	it("scans content for URLs", () => {
+		const artifacts = extractFromRead({
+			file_path: "/tmp/notes.txt",
+			content: "visit https://example.com/page for info",
+		});
+		const urls = artifacts.filter((a) => a.type === "url");
+		expect(urls).toHaveLength(1);
+		expect(urls[0]?.value).toBe("https://example.com/page");
+		expect(urls[0]?.context).toBe("from_read_content");
+	});
+
+	it("returns empty when file_path is missing", () => {
+		expect(extractFromRead({})).toEqual([]);
+	});
+
+	it("returns empty when file_path is non-string", () => {
+		expect(extractFromRead({ file_path: 42 })).toEqual([]);
+	});
+});
+
+describe("extractFromDelete", () => {
+	it("extracts file_path with delete context", () => {
+		const artifacts = extractFromDelete({ file_path: "/etc/hosts" });
+		expect(artifacts).toHaveLength(1);
+		expect(artifacts[0]).toEqual({ type: "file_path", value: "/etc/hosts", context: "delete" });
+	});
+
+	it("returns empty when file_path is missing", () => {
+		expect(extractFromDelete({})).toEqual([]);
+	});
+
+	it("returns empty when file_path is non-string", () => {
+		expect(extractFromDelete({ file_path: 123 })).toEqual([]);
 	});
 });
 

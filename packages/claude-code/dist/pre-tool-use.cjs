@@ -3978,10 +3978,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -3995,7 +3995,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep) {
+          if (!keyProps.anchor && !keyProps.tag && !sep2) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -4019,7 +4019,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep ?? [], {
+        const valueProps = resolveProps.resolveProps(sep2 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -4035,7 +4035,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep2, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -4126,7 +4126,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep = "";
+        let sep2 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -4140,13 +4140,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep + cb;
-              sep = "";
+                comment += sep2 + cb;
+              sep2 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep += source;
+                sep2 += source;
               hasSpace = true;
               break;
             default:
@@ -4189,18 +4189,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep2, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep2?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep && !value) {
+          if (!props.anchor && !props.tag && !sep2 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -4254,8 +4254,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap && !sep && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep, null, props, onError);
+        if (!isMap && !sep2 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep2, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -4267,7 +4267,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep ?? [], {
+          const valueProps = resolveProps.resolveProps(sep2 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -4278,8 +4278,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap && !props.found && ctx.options.strict) {
-              if (sep)
-                for (const st of sep) {
+              if (sep2)
+                for (const st of sep2) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -4296,7 +4296,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep2, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -4476,7 +4476,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep = "";
+      let sep2 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart; ++i)
         value += lines[i][0].slice(trimIndent) + "\n";
@@ -4493,24 +4493,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep === " ")
-            sep = "\n";
-          else if (!prevMoreIndented && sep === "\n")
-            sep = "\n\n";
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          if (sep2 === " ")
+            sep2 = "\n";
+          else if (!prevMoreIndented && sep2 === "\n")
+            sep2 = "\n\n";
+          value += sep2 + indent.slice(trimIndent) + content;
+          sep2 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep === "\n")
+          if (sep2 === "\n")
             value += "\n";
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          value += sep + content;
-          sep = " ";
+          value += sep2 + content;
+          sep2 = " ";
           prevMoreIndented = false;
         }
       }
@@ -4692,25 +4692,25 @@ var require_resolve_flow_scalar = __commonJS({
       if (!match)
         return source;
       let res = match[1];
-      let sep = " ";
+      let sep2 = " ";
       let pos = first.lastIndex;
       line.lastIndex = pos;
       while (match = line.exec(source)) {
         if (match[1] === "") {
-          if (sep === "\n")
-            res += sep;
+          if (sep2 === "\n")
+            res += sep2;
           else
-            sep = "\n";
+            sep2 = "\n";
         } else {
-          res += sep + match[1];
-          sep = " ";
+          res += sep2 + match[1];
+          sep2 = " ";
         }
         pos = line.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep + (match?.[1] ?? "");
+      return res + sep2 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -5512,14 +5512,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep, value }) {
+    function stringifyItem({ start, key, sep: sep2, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep)
-        for (const st of sep)
+      if (sep2)
+        for (const st of sep2)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -6669,18 +6669,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep;
+          let sep2;
           if (scalar.end) {
-            sep = scalar.end;
-            sep.push(this.sourceToken);
+            sep2 = scalar.end;
+            sep2.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep = [this.sourceToken];
+            sep2 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep }]
+            items: [{ start, key: scalar, sep: sep2 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -6833,15 +6833,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep = it.sep;
-                  sep.push(this.sourceToken);
+                  const sep2 = it.sep;
+                  sep2.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep }]
+                    items: [{ start: start2, key, sep: sep2 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -7035,13 +7035,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep = fc.end.splice(1, fc.end.length);
-            sep.push(this.sourceToken);
+            const sep2 = fc.end.splice(1, fc.end.length);
+            sep2.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep }]
+              items: [{ start, key: fc, sep: sep2 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -9312,7 +9312,7 @@ var require_thread_stream = __commonJS({
     var { version } = require_package();
     var { EventEmitter } = require("events");
     var { Worker } = require("worker_threads");
-    var { join: join8 } = require("path");
+    var { join: join9 } = require("path");
     var { pathToFileURL } = require("url");
     var { wait } = require_wait();
     var {
@@ -9348,7 +9348,7 @@ var require_thread_stream = __commonJS({
     function createWorker(stream, opts) {
       const { filename, workerData } = opts;
       const bundlerOverrides = "__bundlerPathsOverrides" in globalThis ? globalThis.__bundlerPathsOverrides : {};
-      const toExecute = bundlerOverrides["thread-stream-worker"] || join8(__dirname, "lib", "worker.js");
+      const toExecute = bundlerOverrides["thread-stream-worker"] || join9(__dirname, "lib", "worker.js");
       const worker = new Worker(toExecute, {
         ...opts.workerOpts,
         trackUnmanagedFds: false,
@@ -9734,7 +9734,7 @@ var require_transport = __commonJS({
     "use strict";
     var { createRequire } = require("module");
     var getCallers = require_caller();
-    var { join: join8, isAbsolute, sep } = require("node:path");
+    var { join: join9, isAbsolute: isAbsolute2, sep: sep2 } = require("node:path");
     var sleep = require_atomic_sleep();
     var onExit = require_on_exit_leak_free();
     var ThreadStream = require_thread_stream();
@@ -9797,7 +9797,7 @@ var require_transport = __commonJS({
         throw new Error("only one of target or targets can be specified");
       }
       if (targets) {
-        target = bundlerOverrides["pino-worker"] || join8(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join9(__dirname, "worker.js");
         options.targets = targets.filter((dest) => dest.target).map((dest) => {
           return {
             ...dest,
@@ -9815,7 +9815,7 @@ var require_transport = __commonJS({
           });
         });
       } else if (pipeline) {
-        target = bundlerOverrides["pino-worker"] || join8(__dirname, "worker.js");
+        target = bundlerOverrides["pino-worker"] || join9(__dirname, "worker.js");
         options.pipelines = [pipeline.map((dest) => {
           return {
             ...dest,
@@ -9833,16 +9833,16 @@ var require_transport = __commonJS({
       return buildStream(fixTarget(target), options, worker, sync);
       function fixTarget(origin) {
         origin = bundlerOverrides[origin] || origin;
-        if (isAbsolute(origin) || origin.indexOf("file://") === 0) {
+        if (isAbsolute2(origin) || origin.indexOf("file://") === 0) {
           return origin;
         }
         if (origin === "pino/file") {
-          return join8(__dirname, "..", "file.js");
+          return join9(__dirname, "..", "file.js");
         }
         let fixTarget2;
         for (const filePath of callers) {
           try {
-            const context = filePath === "node:repl" ? process.cwd() + sep : filePath;
+            const context = filePath === "node:repl" ? process.cwd() + sep2 : filePath;
             fixTarget2 = createRequire(context).resolve(origin);
             break;
           } catch (err) {
@@ -10826,7 +10826,7 @@ var require_safe_stable_stringify = __commonJS({
               return circularValue;
             }
             let res = "";
-            let join8 = ",";
+            let join9 = ",";
             const originalIndentation = indentation;
             if (Array.isArray(value)) {
               if (value.length === 0) {
@@ -10840,7 +10840,7 @@ var require_safe_stable_stringify = __commonJS({
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join8 = `,
+                join9 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -10848,13 +10848,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join8;
+                res += join9;
               }
               const tmp = stringifyFnReplacer(String(i), value, stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join8}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join9}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -10875,7 +10875,7 @@ ${originalIndentation}`;
             let separator = "";
             if (spacer !== "") {
               indentation += spacer;
-              join8 = `,
+              join9 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -10889,13 +10889,13 @@ ${indentation}`;
               const tmp = stringifyFnReplacer(key2, value, stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join8;
+                separator = join9;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...":${whitespace}"${getItemCount(removedKeys)} not stringified"`;
-              separator = join8;
+              separator = join9;
             }
             if (spacer !== "" && separator.length > 1) {
               res = `
@@ -10936,7 +10936,7 @@ ${originalIndentation}`;
             }
             const originalIndentation = indentation;
             let res = "";
-            let join8 = ",";
+            let join9 = ",";
             if (Array.isArray(value)) {
               if (value.length === 0) {
                 return "[]";
@@ -10949,7 +10949,7 @@ ${originalIndentation}`;
                 indentation += spacer;
                 res += `
 ${indentation}`;
-                join8 = `,
+                join9 = `,
 ${indentation}`;
               }
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
@@ -10957,13 +10957,13 @@ ${indentation}`;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
                 res += tmp2 !== void 0 ? tmp2 : "null";
-                res += join8;
+                res += join9;
               }
               const tmp = stringifyArrayReplacer(String(i), value[i], stack, replacer, spacer, indentation);
               res += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res += `${join8}"... ${getItemCount(removedKeys)} not stringified"`;
+                res += `${join9}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               if (spacer !== "") {
                 res += `
@@ -10976,7 +10976,7 @@ ${originalIndentation}`;
             let whitespace = "";
             if (spacer !== "") {
               indentation += spacer;
-              join8 = `,
+              join9 = `,
 ${indentation}`;
               whitespace = " ";
             }
@@ -10985,7 +10985,7 @@ ${indentation}`;
               const tmp = stringifyArrayReplacer(key2, value[key2], stack, replacer, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}:${whitespace}${tmp}`;
-                separator = join8;
+                separator = join9;
               }
             }
             if (spacer !== "" && separator.length > 1) {
@@ -11043,20 +11043,20 @@ ${originalIndentation}`;
               indentation += spacer;
               let res2 = `
 ${indentation}`;
-              const join9 = `,
+              const join10 = `,
 ${indentation}`;
               const maximumValuesToStringify = Math.min(value.length, maximumBreadth);
               let i = 0;
               for (; i < maximumValuesToStringify - 1; i++) {
                 const tmp2 = stringifyIndent(String(i), value[i], stack, spacer, indentation);
                 res2 += tmp2 !== void 0 ? tmp2 : "null";
-                res2 += join9;
+                res2 += join10;
               }
               const tmp = stringifyIndent(String(i), value[i], stack, spacer, indentation);
               res2 += tmp !== void 0 ? tmp : "null";
               if (value.length - 1 > maximumBreadth) {
                 const removedKeys = value.length - maximumBreadth - 1;
-                res2 += `${join9}"... ${getItemCount(removedKeys)} not stringified"`;
+                res2 += `${join10}"... ${getItemCount(removedKeys)} not stringified"`;
               }
               res2 += `
 ${originalIndentation}`;
@@ -11072,16 +11072,16 @@ ${originalIndentation}`;
               return '"[Object]"';
             }
             indentation += spacer;
-            const join8 = `,
+            const join9 = `,
 ${indentation}`;
             let res = "";
             let separator = "";
             let maximumPropertiesToStringify = Math.min(keyLength, maximumBreadth);
             if (isTypedArrayWithEntries(value)) {
-              res += stringifyTypedArray(value, join8, maximumBreadth);
+              res += stringifyTypedArray(value, join9, maximumBreadth);
               keys = keys.slice(value.length);
               maximumPropertiesToStringify -= value.length;
-              separator = join8;
+              separator = join9;
             }
             if (deterministic) {
               keys = sort(keys, comparator);
@@ -11092,13 +11092,13 @@ ${indentation}`;
               const tmp = stringifyIndent(key2, value[key2], stack, spacer, indentation);
               if (tmp !== void 0) {
                 res += `${separator}${strEscape(key2)}: ${tmp}`;
-                separator = join8;
+                separator = join9;
               }
             }
             if (keyLength > maximumBreadth) {
               const removedKeys = keyLength - maximumBreadth;
               res += `${separator}"...": "${getItemCount(removedKeys)} not stringified"`;
-              separator = join8;
+              separator = join9;
             }
             if (separator !== "") {
               res = `
@@ -11626,7 +11626,7 @@ var require_pino = __commonJS({
 
 // src/pre-tool-use.ts
 var import_node_fs = require("node:fs");
-var import_node_path9 = require("node:path");
+var import_node_path10 = require("node:path");
 
 // ../core/dist/config.js
 var import_node_os = require("node:os");
@@ -15764,10 +15764,14 @@ var PackageCheckConfigSchema = external_exports.object({
   // v1: all scoped packages (@scope/pkg) are skipped automatically.
   // Future: add private_scopes / public_scopes config for fine-grained control.
 });
+var AmsiCheckConfigSchema = external_exports.object({
+  enabled: external_exports.boolean().default(true)
+});
 var ConfigSchema = external_exports.object({
   url_check: UrlCheckConfigSchema.default({}),
   file_check: FileCheckConfigSchema.default({}),
   package_check: PackageCheckConfigSchema.default({}),
+  amsi_check: AmsiCheckConfigSchema.default({}),
   heuristics_enabled: external_exports.boolean().default(true),
   cache: CacheConfigSchema.default({}),
   allowlist: AllowlistConfigSchema.default({}),
@@ -15777,37 +15781,112 @@ var ConfigSchema = external_exports.object({
 });
 
 // ../core/dist/config.js
-var DEFAULT_CONFIG_PATH = (0, import_node_path2.join)((0, import_node_os.homedir)(), ".sage", "config.json");
+var SAGE_DIR = "~/.sage";
+function currentHomeDir() {
+  const envHome = process.env.HOME?.trim();
+  return envHome && envHome.length > 0 ? envHome : (0, import_node_os.homedir)();
+}
+function resolvedSageDir() {
+  return resolvePath(SAGE_DIR);
+}
+function defaultConfigPath() {
+  return (0, import_node_path2.join)(resolvedSageDir(), "config.json");
+}
+function defaultCachePath() {
+  return (0, import_node_path2.join)(resolvedSageDir(), "cache.json");
+}
+function defaultAllowlistPath() {
+  return (0, import_node_path2.join)(resolvedSageDir(), "allowlist.json");
+}
+function defaultAuditPath() {
+  return (0, import_node_path2.join)(resolvedSageDir(), "audit.jsonl");
+}
 function resolvePath(pathStr) {
   if (pathStr.startsWith("~/") || pathStr === "~") {
-    return (0, import_node_path2.join)((0, import_node_os.homedir)(), pathStr.slice(1));
+    return (0, import_node_path2.join)(currentHomeDir(), pathStr.slice(1));
   }
   return pathStr;
 }
+function isWithinDirectory(baseDir, targetPath) {
+  const rel = (0, import_node_path2.relative)(baseDir, targetPath);
+  if (rel === "")
+    return true;
+  if ((0, import_node_path2.isAbsolute)(rel))
+    return false;
+  return rel !== ".." && !rel.startsWith(`..${import_node_path2.sep}`);
+}
+function normalizeStateFilePath(configuredPath, fallbackPath, field, logger2) {
+  const sageDir = resolvedSageDir();
+  const trimmed = configuredPath.trim();
+  if (trimmed === "") {
+    logger2.warn(`Config ${field}.path is empty; using default`, {
+      configuredPath,
+      defaultPath: fallbackPath
+    });
+    return fallbackPath;
+  }
+  const expanded = resolvePath(trimmed);
+  const resolved = (0, import_node_path2.isAbsolute)(expanded) ? (0, import_node_path2.resolve)(expanded) : (0, import_node_path2.resolve)(sageDir, expanded);
+  if (isWithinDirectory(sageDir, resolved)) {
+    if (resolved === sageDir) {
+      logger2.warn(`Config ${field}.path must point to a file; using default`, {
+        configuredPath,
+        defaultPath: fallbackPath
+      });
+      return fallbackPath;
+    }
+    return resolved;
+  }
+  logger2.warn(`Config ${field}.path escapes ${sageDir}; using default`, {
+    configuredPath,
+    defaultPath: fallbackPath
+  });
+  return fallbackPath;
+}
+function sanitizeConfigPaths(config, logger2) {
+  const cachePath = defaultCachePath();
+  const allowlistPath = defaultAllowlistPath();
+  const auditPath = defaultAuditPath();
+  return {
+    ...config,
+    cache: {
+      ...config.cache,
+      path: normalizeStateFilePath(config.cache.path, cachePath, "cache", logger2)
+    },
+    allowlist: {
+      ...config.allowlist,
+      path: normalizeStateFilePath(config.allowlist.path, allowlistPath, "allowlist", logger2)
+    },
+    logging: {
+      ...config.logging,
+      path: normalizeStateFilePath(config.logging.path, auditPath, "logging", logger2)
+    }
+  };
+}
 async function loadConfig(configPath, logger2 = nullLogger) {
-  const path = configPath ?? DEFAULT_CONFIG_PATH;
+  const path = configPath ?? defaultConfigPath();
   let raw;
   try {
     raw = await getFileContent(path);
   } catch {
-    return ConfigSchema.parse({});
+    return sanitizeConfigPaths(ConfigSchema.parse({}), logger2);
   }
   let data;
   try {
     data = JSON.parse(raw);
   } catch (e) {
     logger2.warn(`Failed to parse config from ${path}`, { error: String(e) });
-    return ConfigSchema.parse({});
+    return sanitizeConfigPaths(ConfigSchema.parse({}), logger2);
   }
   if (typeof data !== "object" || data === null || Array.isArray(data)) {
     logger2.warn(`Config file ${path} does not contain a JSON object`);
-    return ConfigSchema.parse({});
+    return sanitizeConfigPaths(ConfigSchema.parse({}), logger2);
   }
   try {
-    return ConfigSchema.parse(data);
+    return sanitizeConfigPaths(ConfigSchema.parse(data), logger2);
   } catch (e) {
     logger2.warn(`Config validation failed, using defaults`, { error: String(e) });
-    return ConfigSchema.parse({});
+    return sanitizeConfigPaths(ConfigSchema.parse({}), logger2);
   }
 }
 
@@ -15913,6 +15992,10 @@ function isAllowlisted(allowlist, artifacts) {
   return false;
 }
 
+// ../core/dist/approval-store.js
+var PENDING_STALE_MS = 60 * 60 * 1e3;
+var APPROVED_TTL_MS = 10 * 60 * 1e3;
+
 // ../core/dist/audit-log.js
 var import_promises = require("node:fs/promises");
 var import_node_path4 = require("node:path");
@@ -15924,7 +16007,7 @@ function toolInputSummary(toolName, toolInput) {
   if (toolName === "WebFetch") {
     return String(toolInput.url ?? "").slice(0, MAX_SUMMARY_LEN);
   }
-  if (toolName === "Write" || toolName === "Edit") {
+  if (toolName === "Write" || toolName === "Edit" || toolName === "Read" || toolName === "Delete") {
     return String(toolInput.file_path ?? "").slice(0, MAX_SUMMARY_LEN);
   }
   return JSON.stringify(toolInput).slice(0, MAX_SUMMARY_LEN);
@@ -16125,8 +16208,483 @@ var VerdictCache = class {
   }
 };
 
+// ../core/dist/clients/amsi.js
+var import_node_child_process = require("node:child_process");
+var AMSI_RESULT_DETECTED = 32768;
+var AMSI_RESULT_BLOCKED_BY_ADMIN_START = 16384;
+var MAX_SCAN_LENGTH = 1048576;
+var PS_TIMEOUT = 15e3;
+function isWSL() {
+  if (process.platform !== "linux")
+    return false;
+  return !!process.env.WSL_DISTRO_NAME;
+}
+function isAmsiSupported() {
+  return process.platform === "win32" || isWSL();
+}
+function interpretAmsiResult(amsiResult, content, contentName) {
+  return {
+    content: content.length > 200 ? `${content.slice(0, 200)}...` : content,
+    contentName,
+    amsiResult,
+    isDetected: amsiResult >= AMSI_RESULT_DETECTED,
+    isBlockedByAdmin: amsiResult >= AMSI_RESULT_BLOCKED_BY_ADMIN_START && amsiResult < AMSI_RESULT_DETECTED
+  };
+}
+var KoffiAmsiBackend = class {
+  logger;
+  context = null;
+  session = null;
+  available = false;
+  /* biome-ignore lint/suspicious/noExplicitAny: koffi FFI functions have dynamic signatures */
+  fnScanBuffer = null;
+  /* biome-ignore lint/suspicious/noExplicitAny: koffi FFI functions have dynamic signatures */
+  fnCloseSession = null;
+  /* biome-ignore lint/suspicious/noExplicitAny: koffi FFI functions have dynamic signatures */
+  fnUninitialize = null;
+  constructor(logger2) {
+    this.logger = logger2;
+  }
+  get isAvailable() {
+    return this.available;
+  }
+  async init() {
+    try {
+      const koffiModule = await import("koffi");
+      const koffi = koffiModule.default ?? koffiModule;
+      const lib = koffi.load("amsi.dll");
+      const _HAMSICONTEXT = koffi.pointer("HAMSICONTEXT", koffi.opaque());
+      const _HAMSISESSION = koffi.pointer("HAMSISESSION", koffi.opaque());
+      const AmsiInitialize = lib.func("int32 __stdcall AmsiInitialize(str16 appName, _Out_ HAMSICONTEXT *ctx)");
+      const AmsiOpenSession = lib.func("int32 __stdcall AmsiOpenSession(HAMSICONTEXT ctx, _Out_ HAMSISESSION *session)");
+      this.fnScanBuffer = lib.func("int32 __stdcall AmsiScanBuffer(HAMSICONTEXT ctx, void *buf, uint32 len, str16 contentName, HAMSISESSION session, _Out_ int32 *result)");
+      this.fnCloseSession = lib.func("void __stdcall AmsiCloseSession(HAMSICONTEXT ctx, HAMSISESSION session)");
+      this.fnUninitialize = lib.func("void __stdcall AmsiUninitialize(HAMSICONTEXT ctx)");
+      const ctxOut = [null];
+      const hr = AmsiInitialize("Sage", ctxOut);
+      if (hr !== 0) {
+        this.logger.warn("AMSI: koffi AmsiInitialize failed", { hr });
+        return;
+      }
+      this.context = ctxOut[0];
+      const sessOut = [null];
+      const hr2 = AmsiOpenSession(this.context, sessOut);
+      if (hr2 !== 0) {
+        this.logger.warn("AMSI: koffi AmsiOpenSession failed", { hr: hr2 });
+        try {
+          if (this.fnUninitialize) {
+            this.fnUninitialize(this.context);
+          }
+        } catch {
+        }
+        this.context = null;
+        return;
+      }
+      this.session = sessOut[0];
+      this.available = true;
+      this.logger.debug("AMSI: koffi backend initialized");
+    } catch (e) {
+      this.logger.debug("AMSI: koffi backend init failed", { error: String(e) });
+      this.available = false;
+    }
+  }
+  async scanString(content, contentName) {
+    if (!this.available || !this.fnScanBuffer || !this.context || !this.session) {
+      return null;
+    }
+    try {
+      const truncated = content.length > MAX_SCAN_LENGTH ? content.slice(0, MAX_SCAN_LENGTH) : content;
+      const buf = Buffer.from(truncated, "utf-8");
+      const resultOut = [0];
+      const hr = this.fnScanBuffer(this.context, buf, buf.length, contentName, this.session, resultOut);
+      if (hr !== 0) {
+        this.logger.warn("AMSI: koffi AmsiScanBuffer failed", { hr, contentName });
+        return null;
+      }
+      const amsiResult = resultOut[0] ?? 0;
+      this.logger.debug("AMSI: koffi scan result", { contentName, amsiResult });
+      return interpretAmsiResult(amsiResult, content, contentName);
+    } catch (e) {
+      this.logger.warn("AMSI: koffi scanBuffer failed", { error: String(e), contentName });
+      return null;
+    }
+  }
+  close() {
+    try {
+      if (this.session && this.context && this.fnCloseSession) {
+        this.fnCloseSession(this.context, this.session);
+      }
+    } catch {
+    }
+    try {
+      if (this.context && this.fnUninitialize) {
+        this.fnUninitialize(this.context);
+      }
+    } catch {
+    }
+    this.session = null;
+    this.context = null;
+    this.available = false;
+  }
+};
+var AMSI_CSHARP_TYPE = `
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+
+public class SageAmsi {
+    [DllImport("amsi.dll", CharSet = CharSet.Unicode)]
+    static extern int AmsiInitialize(string appName, out IntPtr ctx);
+
+    [DllImport("amsi.dll")]
+    static extern int AmsiOpenSession(IntPtr ctx, out IntPtr session);
+
+    [DllImport("amsi.dll", CharSet = CharSet.Unicode)]
+    static extern int AmsiScanBuffer(
+        IntPtr ctx, byte[] buf, uint len,
+        string contentName, IntPtr session, out int result);
+
+    [DllImport("amsi.dll")]
+    static extern void AmsiCloseSession(IntPtr ctx, IntPtr session);
+
+    [DllImport("amsi.dll")]
+    static extern void AmsiUninitialize(IntPtr ctx);
+
+    private static IntPtr _ctx;
+    private static IntPtr _session;
+    private static bool _initialized;
+
+    public static bool Init() {
+        int hr = AmsiInitialize("Sage", out _ctx);
+        if (hr != 0) return false;
+        hr = AmsiOpenSession(_ctx, out _session);
+        if (hr != 0) {
+            AmsiUninitialize(_ctx);
+            return false;
+        }
+        _initialized = true;
+        return true;
+    }
+
+    public static int Scan(string content, string contentName) {
+        if (!_initialized) return -1;
+        byte[] bytes = Encoding.UTF8.GetBytes(content);
+        int result;
+        int hr = AmsiScanBuffer(_ctx, bytes, (uint)bytes.Length,
+                                contentName, _session, out result);
+        if (hr != 0) return -1;
+        return result;
+    }
+
+    public static void Shutdown() {
+        if (!_initialized) return;
+        AmsiCloseSession(_ctx, _session);
+        AmsiUninitialize(_ctx);
+        _initialized = false;
+    }
+}
+`;
+var PS_PERSISTENT_SCRIPT = `
+$ErrorActionPreference = 'Stop'
+try {
+    Add-Type -TypeDefinition @'
+${AMSI_CSHARP_TYPE}
+'@
+
+    if (-not [SageAmsi]::Init()) {
+        [Console]::Error.Write("AMSI initialization failed")
+        exit 1
+    }
+
+    [Console]::Out.WriteLine("READY")
+    [Console]::Out.Flush()
+
+    while ($null -ne ($line = [Console]::In.ReadLine())) {
+        try {
+            $req = $line | ConvertFrom-Json
+            $content = $req.content
+            $cname = $req.contentName
+            if (-not $cname) { $cname = 'sage:test' }
+            $result = [SageAmsi]::Scan($content, $cname)
+            [Console]::Out.WriteLine($result)
+            [Console]::Out.Flush()
+        } catch {
+            [Console]::Out.WriteLine("-1")
+            [Console]::Out.Flush()
+        }
+    }
+
+    [SageAmsi]::Shutdown()
+} catch {
+    [Console]::Error.Write($_.Exception.Message)
+    exit 1
+}
+`;
+var PS_ONESHOT_SCRIPT = `
+$ErrorActionPreference = 'Stop'
+try {
+    Add-Type -TypeDefinition @'
+${AMSI_CSHARP_TYPE}
+'@
+
+    if (-not [SageAmsi]::Init()) {
+        [Console]::Out.WriteLine("-1")
+        exit
+    }
+
+    $line = [Console]::In.ReadLine()
+    $req = $line | ConvertFrom-Json
+    $content = $req.content
+    $cname = $req.contentName
+    if (-not $cname) { $cname = 'sage:scan' }
+    $result = [SageAmsi]::Scan($content, $cname)
+    [SageAmsi]::Shutdown()
+    [Console]::Out.WriteLine($result)
+    [Console]::Out.Flush()
+} catch {
+    [Console]::Out.WriteLine("-1")
+}
+`;
+var PersistentPowershellAmsiBackend = class {
+  logger;
+  process = null;
+  available = false;
+  stdoutBuffer = "";
+  pendingResponse = null;
+  constructor(logger2) {
+    this.logger = logger2;
+  }
+  get isAvailable() {
+    return this.available;
+  }
+  waitForLine(timeout) {
+    return new Promise((resolve3, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingResponse = null;
+        reject(new Error("timeout"));
+      }, timeout);
+      this.pendingResponse = { resolve: resolve3, reject, timer };
+    });
+  }
+  async init() {
+    try {
+      this.process = (0, import_node_child_process.spawn)("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", PS_PERSISTENT_SCRIPT], {
+        stdio: ["pipe", "pipe", "pipe"],
+        windowsHide: true
+      });
+      this.process.on("error", (err) => {
+        this.logger.debug("AMSI: PowerShell process error", { error: String(err) });
+        this.available = false;
+        if (this.pendingResponse) {
+          const { reject, timer } = this.pendingResponse;
+          this.pendingResponse = null;
+          clearTimeout(timer);
+          reject(err);
+        }
+      });
+      this.process.on("exit", () => {
+        this.available = false;
+        if (this.pendingResponse) {
+          const { reject, timer } = this.pendingResponse;
+          this.pendingResponse = null;
+          clearTimeout(timer);
+          reject(new Error("process exited"));
+        }
+      });
+      this.process.stdout?.on("data", (chunk) => {
+        this.stdoutBuffer += chunk.toString();
+        let idx = this.stdoutBuffer.indexOf("\n");
+        while (idx !== -1) {
+          const line = this.stdoutBuffer.slice(0, idx).trim();
+          this.stdoutBuffer = this.stdoutBuffer.slice(idx + 1);
+          if (this.pendingResponse) {
+            const { resolve: resolve3, timer } = this.pendingResponse;
+            this.pendingResponse = null;
+            clearTimeout(timer);
+            resolve3(line);
+          }
+          idx = this.stdoutBuffer.indexOf("\n");
+        }
+      });
+      this.process.stdin?.on("error", () => {
+      });
+      this.process.stderr?.on("data", (chunk) => {
+        this.logger.debug("AMSI: PowerShell stderr", {
+          data: chunk.toString().slice(0, 200)
+        });
+      });
+      const readyLine = await this.waitForLine(PS_TIMEOUT);
+      if (readyLine === "READY") {
+        this.available = true;
+        this.logger.debug("AMSI: PowerShell persistent backend initialized");
+      } else {
+        this.logger.debug("AMSI: PowerShell unexpected ready signal", { readyLine });
+        this.close();
+      }
+    } catch (e) {
+      this.logger.debug("AMSI: PowerShell persistent backend init failed", {
+        error: String(e)
+      });
+      this.close();
+    }
+  }
+  async scanString(content, contentName) {
+    if (!this.available || !this.process)
+      return null;
+    const truncated = content.length > MAX_SCAN_LENGTH ? content.slice(0, MAX_SCAN_LENGTH) : content;
+    try {
+      const req = JSON.stringify({ content: truncated, contentName });
+      this.process.stdin?.write(`${req}
+`);
+      const line = await this.waitForLine(PS_TIMEOUT);
+      const amsiResult = parseInt(line, 10);
+      if (Number.isNaN(amsiResult) || amsiResult < 0) {
+        this.logger.warn("AMSI: PowerShell scan returned invalid result", {
+          stdout: line.slice(0, 100),
+          contentName
+        });
+        return null;
+      }
+      this.logger.debug("AMSI: PowerShell scan result", { contentName, amsiResult });
+      return interpretAmsiResult(amsiResult, content, contentName);
+    } catch (e) {
+      this.logger.warn("AMSI: PowerShell scan failed", { error: String(e), contentName });
+      return null;
+    }
+  }
+  close() {
+    if (this.process) {
+      try {
+        this.process.stdin?.end();
+      } catch {
+      }
+      try {
+        this.process.kill();
+      } catch {
+      }
+      this.process = null;
+    }
+    if (this.pendingResponse) {
+      const { reject, timer } = this.pendingResponse;
+      this.pendingResponse = null;
+      clearTimeout(timer);
+      reject(new Error("closed"));
+    }
+    this.available = false;
+  }
+};
+var WslPowershellAmsiBackend = class {
+  logger;
+  available = false;
+  constructor(logger2) {
+    this.logger = logger2;
+  }
+  get isAvailable() {
+    return this.available;
+  }
+  async init() {
+    this.available = true;
+    this.logger.debug("AMSI: PowerShell one-shot backend ready (WSL)");
+  }
+  async scanString(content, contentName) {
+    if (!this.available)
+      return null;
+    const truncated = content.length > MAX_SCAN_LENGTH ? content.slice(0, MAX_SCAN_LENGTH) : content;
+    return new Promise((resolve3) => {
+      try {
+        const ps = (0, import_node_child_process.spawn)("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", PS_ONESHOT_SCRIPT], { stdio: ["pipe", "pipe", "pipe"] });
+        let stdout = "";
+        const timer = setTimeout(() => {
+          this.logger.warn("AMSI: PowerShell one-shot timeout", { contentName });
+          try {
+            ps.kill();
+          } catch {
+          }
+          resolve3(null);
+        }, PS_TIMEOUT);
+        ps.stdout?.on("data", (chunk) => {
+          stdout += chunk.toString();
+        });
+        ps.stderr?.on("data", (chunk) => {
+          this.logger.debug("AMSI: PowerShell one-shot stderr", {
+            data: chunk.toString().slice(0, 200)
+          });
+        });
+        ps.on("error", (err) => {
+          clearTimeout(timer);
+          this.logger.debug("AMSI: PowerShell one-shot error", { error: String(err) });
+          resolve3(null);
+        });
+        ps.on("exit", () => {
+          clearTimeout(timer);
+          const amsiResult = parseInt(stdout.trim(), 10);
+          if (Number.isNaN(amsiResult) || amsiResult < 0) {
+            this.logger.warn("AMSI: PowerShell one-shot invalid result", {
+              stdout: stdout.slice(0, 100),
+              contentName
+            });
+            resolve3(null);
+            return;
+          }
+          this.logger.debug("AMSI: PowerShell one-shot result", { contentName, amsiResult });
+          resolve3(interpretAmsiResult(amsiResult, content, contentName));
+        });
+        const req = JSON.stringify({ content: truncated, contentName });
+        ps.stdin?.write(`${req}
+`);
+        ps.stdin?.end();
+      } catch (e) {
+        this.logger.warn("AMSI: PowerShell one-shot failed", { error: String(e), contentName });
+        resolve3(null);
+      }
+    });
+  }
+  close() {
+    this.available = false;
+  }
+};
+var AmsiClient = class {
+  logger;
+  backend = null;
+  constructor(logger2 = nullLogger) {
+    this.logger = logger2;
+  }
+  get isAvailable() {
+    return this.backend?.isAvailable ?? false;
+  }
+  async init() {
+    const wsl = isWSL();
+    if (process.platform !== "win32" && !wsl) {
+      this.logger.debug("AMSI: skipping, not Windows");
+      return;
+    }
+    if (!wsl) {
+      const koffi = new KoffiAmsiBackend(this.logger);
+      await koffi.init();
+      if (koffi.isAvailable) {
+        this.backend = koffi;
+        return;
+      }
+    }
+    const ps = wsl ? new WslPowershellAmsiBackend(this.logger) : new PersistentPowershellAmsiBackend(this.logger);
+    await ps.init();
+    if (ps.isAvailable) {
+      this.backend = ps;
+      return;
+    }
+    this.logger.debug("AMSI: no backend available");
+  }
+  async scanString(content, contentName) {
+    return await this.backend?.scanString(content, contentName) ?? null;
+  }
+  close() {
+    this.backend?.close();
+    this.backend = null;
+  }
+};
+
 // ../core/dist/version.js
-var VERSION = true ? "0.4.4" : "dev";
+var VERSION = true ? "0.5.1" : "dev";
 
 // ../core/dist/clients/file-check.js
 var DEFAULT_TIMEOUT = 5;
@@ -16310,8 +16868,9 @@ var RegistryClient = class {
       if (!latestTag)
         return null;
       const versions = data.versions ?? {};
-      const requestedVersionFound = !requestedVersion || Boolean(versions[requestedVersion]);
-      const resolvedVersion = requestedVersion && versions[requestedVersion] ? requestedVersion : latestTag;
+      const effectiveVersion = requestedVersion && distTags[requestedVersion] ? distTags[requestedVersion] : requestedVersion;
+      const requestedVersionFound = !effectiveVersion || Boolean(versions[effectiveVersion]);
+      const resolvedVersion = effectiveVersion && versions[effectiveVersion] ? effectiveVersion : latestTag;
       const resolvedVersionData = versions[resolvedVersion];
       if (!resolvedVersionData)
         return null;
@@ -16426,17 +16985,24 @@ var REQUEST_HEADERS2 = [
 function getProviderName2() {
   return "avast";
 }
+function getSubdomain() {
+  return "svc";
+}
+function buildDomain() {
+  return [getSubdomain(), getProviderName2(), getProviderTld2()].join(".");
+}
+function resolveEndpoint(path) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `https://${SERVICE_NAME2}-proxy.${buildDomain()}${normalizedPath}`;
+}
 var UrlCheckClient = class {
   endpoint;
   timeoutMs;
   logger;
   constructor(config, logger2 = nullLogger) {
-    this.endpoint = config?.endpoint ?? this.resolveEndpoint();
+    this.endpoint = config?.endpoint ?? resolveEndpoint("/url-check");
     this.timeoutMs = (config?.timeout_seconds ?? DEFAULT_TIMEOUT3) * 1e3;
     this.logger = logger2;
-  }
-  buildPath() {
-    return "/url-check";
   }
   async checkUrls(urls) {
     if (urls.length === 0)
@@ -16447,9 +17013,6 @@ var UrlCheckClient = class {
     }
     const batchResults = await Promise.all(batches.map((batch) => this.checkBatch(batch)));
     return batchResults.flat();
-  }
-  getSubdomain() {
-    return "svc";
   }
   async checkBatch(urls) {
     const queries = urls.map((url) => ({ key: { "url-like": url } }));
@@ -16486,9 +17049,6 @@ var UrlCheckClient = class {
       return [];
     }
   }
-  buildDomain() {
-    return [this.getSubdomain(), getProviderName2(), getProviderTld2()].join(".");
-  }
   parseAnswer(answer) {
     try {
       const url = answer.key ?? "";
@@ -16512,9 +17072,6 @@ var UrlCheckClient = class {
       this.logger.warn("Failed to parse answer", { error: String(e) });
       return null;
     }
-  }
-  resolveEndpoint() {
-    return `https://${SERVICE_NAME2}-proxy.${this.buildDomain()}${this.buildPath()}`;
   }
 };
 
@@ -16546,17 +17103,8 @@ var DecisionEngine = class {
   constructor(sensitivity = "balanced") {
     this.threshold = SENSITIVITY_THRESHOLDS[sensitivity] ?? CONFIDENCE_THRESHOLD;
   }
-  async decide(heuristicMatchesOrSources, urlCheckResults) {
-    let sources;
-    if (Array.isArray(heuristicMatchesOrSources)) {
-      sources = {
-        heuristicMatches: heuristicMatchesOrSources,
-        urlCheckResults: urlCheckResults ?? []
-      };
-    } else {
-      sources = heuristicMatchesOrSources;
-    }
-    const signals = this.collectSignals(sources.heuristicMatches, sources.urlCheckResults, sources.packageCheckResults);
+  async decide(sources) {
+    const signals = this.collectSignals(sources.heuristicMatches, sources.urlCheckResults, sources.packageCheckResults, sources.amsiCheckResults);
     if (signals.length === 0) {
       return this.allowVerdict();
     }
@@ -16583,7 +17131,7 @@ var DecisionEngine = class {
       reasons: allReasons
     };
   }
-  collectSignals(heuristicMatches, urlCheckResults, packageCheckResults) {
+  collectSignals(heuristicMatches, urlCheckResults, packageCheckResults, amsiCheckResults) {
     const signals = [];
     for (const match of heuristicMatches) {
       signals.push({
@@ -16631,6 +17179,33 @@ var DecisionEngine = class {
         const signal = this.packageVerdictToSignal(pkg);
         if (signal)
           signals.push(signal);
+      }
+    }
+    if (amsiCheckResults) {
+      for (const result of amsiCheckResults) {
+        if (result.isDetected) {
+          signals.push({
+            decision: "deny",
+            category: "malware",
+            confidence: 1,
+            severity: "critical",
+            source: "amsi",
+            threatId: null,
+            reason: `AMSI detected malware in ${result.contentName} (result=${result.amsiResult})`,
+            artifact: result.contentName
+          });
+        } else if (result.isBlockedByAdmin) {
+          signals.push({
+            decision: "deny",
+            category: "malware",
+            confidence: 0.9,
+            severity: "critical",
+            source: "amsi",
+            threatId: null,
+            reason: `AMSI: content blocked by admin policy in ${result.contentName} (result=${result.amsiResult})`,
+            artifact: result.contentName
+          });
+        }
       }
     }
     return signals;
@@ -16783,6 +17358,9 @@ function extractFromWrite(toolInput) {
 }
 function extractFromEdit(toolInput) {
   return extractFileArtifacts(toolInput, "file_path", "new_string", "edit", "from_edit_content");
+}
+function extractFromRead(toolInput) {
+  return extractFileArtifacts(toolInput, "file_path", "content", "read", "from_read_content");
 }
 
 // ../core/dist/trusted-domains.js
@@ -17517,22 +18095,7 @@ async function evaluateToolCall(request, context) {
     cache = null;
   }
   const urls = request.artifacts.filter((artifact) => artifact.type === "url").map((artifact) => artifact.value);
-  const cachedUrlVerdicts = /* @__PURE__ */ new Map();
-  let uncachedUrls = [];
-  if (cache && urls.length > 0) {
-    try {
-      for (const url of urls) {
-        const cached = cache.getUrl(url);
-        if (cached !== null) {
-          cachedUrlVerdicts.set(url, cached);
-        } else {
-          uncachedUrls.push(url);
-        }
-      }
-    } catch {
-      uncachedUrls = urls;
-    }
-  }
+  const { cachedUrlVerdicts, uncachedUrls } = partitionUrlsByCache(urls, cache);
   let heuristicMatches = [];
   if (config.heuristics_enabled) {
     let threats = await loadThreats(context.threatsDir, logger2);
@@ -17553,67 +18116,51 @@ async function evaluateToolCall(request, context) {
     } catch {
     }
   }
-  const packageCheckResults = [];
-  if (config.package_check.enabled) {
+  const packageCheckResults = await checkPackages(request, config, cache, logger2);
+  const amsiCheckResults = [];
+  if (config.amsi_check.enabled && isAmsiSupported()) {
+    let amsiClient = null;
     try {
-      let parsedPackages;
-      if (request.toolName === "Bash") {
-        const command = request.toolInput.command ?? "";
-        parsedPackages = extractPackagesFromCommand(command);
-      } else if (request.toolName === "Write" || request.toolName === "Edit") {
-        const filePath = request.toolInput.file_path ?? "";
-        const content = request.toolInput.content ?? request.toolInput.new_string ?? "";
-        parsedPackages = extractPackagesFromManifest(filePath, content);
-      }
-      if (parsedPackages && parsedPackages.length > 0) {
-        const uncached = [];
-        for (const pkg of parsedPackages) {
-          const cacheKey2 = `${pkg.registry}:${pkg.name}${pkg.version ? `@${pkg.version}` : ""}`;
-          const cached = cache?.getPackage(cacheKey2);
-          if (cached && cached.verdict !== "allow") {
-            packageCheckResults.push({
-              packageName: pkg.name,
-              registry: pkg.registry,
-              verdict: cached.verdict === "deny" ? "malicious" : "suspicious_age",
-              confidence: 1,
-              details: cached.reasons.join("; ")
-            });
-          } else if (!cached) {
-            uncached.push(pkg);
+      amsiClient = new AmsiClient(logger2);
+      await amsiClient.init();
+      if (amsiClient.isAvailable) {
+        const scans = [];
+        if (request.toolName === "Bash") {
+          const command = request.toolInput.command ?? "";
+          if (command) {
+            scans.push({ content: command, name: `Bash:command` });
+          }
+        } else if (request.toolName === "Write") {
+          const filePath = request.toolInput.file_path ?? "";
+          const content = request.toolInput.content ?? "";
+          if (content) {
+            scans.push({ content, name: `Write:${filePath}` });
+          }
+        } else if (request.toolName === "Edit") {
+          const filePath = request.toolInput.file_path ?? "";
+          const newString = request.toolInput.new_string ?? "";
+          if (newString) {
+            scans.push({ content: newString, name: `Edit:${filePath}` });
           }
         }
-        if (uncached.length > 0) {
-          const checker = new PackageChecker({
-            registryTimeoutSeconds: config.package_check.timeout_seconds,
-            fileCheckEndpoint: config.file_check.endpoint,
-            fileCheckTimeoutSeconds: config.file_check.timeout_seconds,
-            fileCheckEnabled: config.file_check.enabled
-          }, logger2);
-          const results = await checker.checkPackages(uncached);
-          packageCheckResults.push(...results);
-          if (cache) {
-            for (const result of results) {
-              const pkg = uncached.find((p) => p.name === result.packageName);
-              const cacheKey2 = `${result.registry}:${result.packageName}${pkg?.version ? `@${pkg.version}` : ""}`;
-              const isCritical = result.verdict === "malicious" || result.verdict === "not_found";
-              cache.putPackage(cacheKey2, {
-                verdict: result.verdict === "clean" ? "allow" : isCritical ? "deny" : "ask",
-                severity: isCritical ? "critical" : "warning",
-                reasons: [result.details],
-                source: "package_check"
-              }, result.ageDays ?? null);
-            }
+        for (const scan of scans) {
+          const result = await amsiClient.scanString(scan.content, scan.name);
+          if (result) {
+            amsiCheckResults.push(result);
           }
         }
       }
     } catch {
+    } finally {
+      amsiClient?.close();
     }
   }
   const engine = new DecisionEngine(config.sensitivity);
   let verdict = await engine.decide({
     heuristicMatches,
     urlCheckResults,
-    packageCheckResults: packageCheckResults.length > 0 ? packageCheckResults : void 0
+    packageCheckResults: packageCheckResults.length > 0 ? packageCheckResults : void 0,
+    amsiCheckResults: amsiCheckResults.length > 0 ? amsiCheckResults : void 0
   });
   if (cachedUrlVerdicts.size > 0 && verdict.decision === "allow") {
     for (const [url, cachedVerdict] of cachedUrlVerdicts) {
@@ -17633,49 +18180,131 @@ async function evaluateToolCall(request, context) {
       break;
     }
   }
-  if (cache) {
-    try {
-      for (const result of urlCheckResults) {
-        let cachedVerdict;
-        if (result.isMalicious) {
-          cachedVerdict = {
-            verdict: "deny",
-            severity: "critical",
-            reasons: [
-              `URL check: malicious (${result.findings.map((finding) => `${finding.severityName}/${finding.typeName}`).join(", ")})`
-            ],
-            source: "url_check"
-          };
-        } else if (result.flags.length > 0) {
-          cachedVerdict = {
-            verdict: "ask",
-            severity: "warning",
-            reasons: [`URL check: suspicious (${result.flags.join(", ")})`],
-            source: "url_check"
-          };
-        } else {
-          cachedVerdict = {
-            verdict: "allow",
-            severity: "info",
-            reasons: [],
-            source: "url_check"
-          };
-        }
-        cache.putUrl(result.url, cachedVerdict, result.isMalicious);
-      }
-      await cache.save();
-    } catch {
-    }
-  }
+  await cacheUrlResults(urlCheckResults, cache);
   try {
     await logVerdict(config.logging, request.sessionId, request.toolName, request.toolInput, verdict);
   } catch {
   }
   return verdict;
 }
+function partitionUrlsByCache(urls, cache) {
+  const cachedUrlVerdicts = /* @__PURE__ */ new Map();
+  let uncachedUrls = [];
+  if (cache && urls.length > 0) {
+    try {
+      for (const url of urls) {
+        const cached = cache.getUrl(url);
+        if (cached !== null) {
+          cachedUrlVerdicts.set(url, cached);
+        } else {
+          uncachedUrls.push(url);
+        }
+      }
+    } catch {
+      uncachedUrls = urls;
+    }
+  }
+  return { cachedUrlVerdicts, uncachedUrls };
+}
+async function cacheUrlResults(urlCheckResults, cache) {
+  if (!cache)
+    return;
+  try {
+    for (const result of urlCheckResults) {
+      let cachedVerdict;
+      if (result.isMalicious) {
+        cachedVerdict = {
+          verdict: "deny",
+          severity: "critical",
+          reasons: [
+            `URL check: malicious (${result.findings.map((finding) => `${finding.severityName}/${finding.typeName}`).join(", ")})`
+          ],
+          source: "url_check"
+        };
+      } else if (result.flags.length > 0) {
+        cachedVerdict = {
+          verdict: "ask",
+          severity: "warning",
+          reasons: [`URL check: suspicious (${result.flags.join(", ")})`],
+          source: "url_check"
+        };
+      } else {
+        cachedVerdict = {
+          verdict: "allow",
+          severity: "info",
+          reasons: [],
+          source: "url_check"
+        };
+      }
+      cache.putUrl(result.url, cachedVerdict, result.isMalicious);
+    }
+    await cache.save();
+  } catch {
+  }
+}
+async function checkPackages(request, config, cache, logger2) {
+  const results = [];
+  if (!config.package_check.enabled)
+    return results;
+  try {
+    let parsedPackages;
+    if (request.toolName === "Bash") {
+      const command = request.toolInput.command ?? "";
+      parsedPackages = extractPackagesFromCommand(command);
+    } else if (request.toolName === "Write" || request.toolName === "Edit") {
+      const filePath = request.toolInput.file_path ?? "";
+      const content = request.toolInput.content ?? request.toolInput.new_string ?? "";
+      parsedPackages = extractPackagesFromManifest(filePath, content);
+    }
+    if (!parsedPackages || parsedPackages.length === 0)
+      return results;
+    const uncached = [];
+    for (const pkg of parsedPackages) {
+      const cacheKey2 = `${pkg.registry}:${pkg.name}${pkg.version ? `@${pkg.version}` : ""}`;
+      const cached = cache?.getPackage(cacheKey2);
+      if (cached && cached.verdict !== "allow") {
+        results.push({
+          packageName: pkg.name,
+          registry: pkg.registry,
+          verdict: cached.verdict === "deny" ? "malicious" : "suspicious_age",
+          confidence: 1,
+          details: cached.reasons.join("; ")
+        });
+      } else if (!cached) {
+        uncached.push(pkg);
+      }
+    }
+    if (uncached.length > 0) {
+      const checker = new PackageChecker({
+        registryTimeoutSeconds: config.package_check.timeout_seconds,
+        fileCheckEndpoint: config.file_check.endpoint,
+        fileCheckTimeoutSeconds: config.file_check.timeout_seconds,
+        fileCheckEnabled: config.file_check.enabled
+      }, logger2);
+      const checked = await checker.checkPackages(uncached);
+      results.push(...checked);
+      if (cache) {
+        for (const result of checked) {
+          const pkg = uncached.find((p) => p.name === result.packageName);
+          const cacheKey2 = `${result.registry}:${result.packageName}${pkg?.version ? `@${pkg.version}` : ""}`;
+          const isCritical = result.verdict === "malicious" || result.verdict === "not_found";
+          cache.putPackage(cacheKey2, {
+            verdict: result.verdict === "clean" ? "allow" : isCritical ? "deny" : "ask",
+            severity: isCritical ? "critical" : "warning",
+            reasons: [result.details],
+            source: "package_check"
+          }, result.ageDays ?? null);
+        }
+      }
+    }
+  } catch {
+  }
+  return results;
+}
 
 // ../core/dist/format.js
 var PAD = 12;
+var SEPARATOR_WIDTH = 48;
 function severityEmoji(severity) {
   const s = severity.toLowerCase();
   if (s === "critical" || s === "high")
@@ -17707,15 +18336,18 @@ var import_pino = __toESM(require_pino(), 1);
 
 // src/approval-tracker.ts
 var import_promises4 = require("node:fs/promises");
-var SAGE_DIR = "~/.sage";
-var PENDING_STALE_MS = 60 * 60 * 1e3;
+var import_node_path9 = require("node:path");
+var PENDING_STALE_MS2 = 60 * 60 * 1e3;
 var CONSUMED_TTL_MS = 10 * 60 * 1e3;
 var STALE_FILE_MS = 2 * 60 * 60 * 1e3;
 function sanitizeSessionId(sessionId) {
   return sessionId.replace(/[^a-zA-Z0-9-]/g, "_");
 }
+function resolvedSageDir2() {
+  return resolvePath(SAGE_DIR);
+}
 function pendingPath(sessionId) {
-  return `${SAGE_DIR}/pending-approvals-${sanitizeSessionId(sessionId)}.json`;
+  return (0, import_node_path9.join)(resolvedSageDir2(), `pending-approvals-${sanitizeSessionId(sessionId)}.json`);
 }
 async function loadJson(path) {
   try {
@@ -17740,7 +18372,7 @@ function pruneStalePending(store) {
   const now = Date.now();
   const result = {};
   for (const [key, entry] of Object.entries(store)) {
-    if (now - new Date(entry.createdAt).getTime() < PENDING_STALE_MS) {
+    if (now - new Date(entry.createdAt).getTime() < PENDING_STALE_MS2) {
       result[key] = entry;
     }
   }
@@ -17758,8 +18390,6 @@ async function addPendingApproval(sessionId, toolUseId, approval, logger2 = null
 }
 
 // src/format.ts
-var PAD2 = 12;
-var SEPARATOR_WIDTH = 48;
 function appendVerdictDetails(lines, verdict) {
   lines.push(kv("Severity", verdict.severity.toUpperCase()));
   if (verdict.artifacts.length > 0) {
@@ -17778,14 +18408,14 @@ function formatBlockReason(verdict) {
   const reasonText = verdict.reasons.length > 0 ? verdict.reasons[0] : verdict.category;
   if (isDeny) {
     const lines2 = [" "];
-    lines2.push(`${emoji} ${"Threat".padEnd(PAD2)}${reasonText}`);
+    lines2.push(`${emoji} ${"Threat".padEnd(PAD)}${reasonText}`);
     appendVerdictDetails(lines2, verdict);
     lines2.push(kv("Action", "Blocked"));
     return lines2.join("\n");
   }
   const header = `\u{1F6E1}\uFE0F Sage by Gen Digital: Suspicious Activity Detected`;
   const lines = [header, separatorLine(SEPARATOR_WIDTH)];
-  lines.push(`${emoji} ${"Threat".padEnd(PAD2)}${reasonText}`);
+  lines.push(`${emoji} ${"Threat".padEnd(PAD)}${reasonText}`);
   appendVerdictDetails(lines, verdict);
   lines.push(kv("Action", "Requires confirmation"));
   return lines.join("\n");
@@ -17815,7 +18445,7 @@ function makeResponse(verdict) {
   };
 }
 function getPluginRoot() {
-  return (0, import_node_path9.resolve)(__dirname, "..", "..", "..");
+  return (0, import_node_path10.resolve)(__dirname, "..", "..", "..");
 }
 async function main() {
   let rawInput;
@@ -17860,6 +18490,11 @@ async function main() {
     case "Edit":
       artifacts = extractFromEdit(toolInput);
       break;
+    case "Read":
+      artifacts = extractFromRead(toolInput);
+      break;
+    // No Delete case — Claude Code does not expose a Delete tool.
+    // Delete is handled only in VS Code and Cursor connectors.
     default:
       process.stdout.write("{}\n");
       return;
@@ -17871,8 +18506,8 @@ async function main() {
   const verdict = await evaluateToolCall(
     { sessionId, toolName, toolInput, artifacts },
     {
-      threatsDir: (0, import_node_path9.join)(pluginRoot, "threats"),
-      allowlistsDir: (0, import_node_path9.join)(pluginRoot, "allowlists"),
+      threatsDir: (0, import_node_path10.join)(pluginRoot, "threats"),
+      allowlistsDir: (0, import_node_path10.join)(pluginRoot, "allowlists"),
       logger
     }
   );

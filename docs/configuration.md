@@ -18,6 +18,9 @@ Sage reads configuration from `~/.sage/config.json`. All fields are optional - d
     "enabled": true,
     "timeout_seconds": 5
   },
+  "amsi_check": {
+    "enabled": true
+  },
   "heuristics_enabled": true,
   "cache": {
     "enabled": true,
@@ -61,6 +64,14 @@ Sage reads configuration from `~/.sage/config.json`. All fields are optional - d
 | `enabled` | `true` | Enable package supply-chain checks |
 | `timeout_seconds` | `5` | Request timeout |
 
+### `amsi_check`
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `enabled` | `true` | Enable AMSI (Antimalware Scan Interface) scanning on Windows and WSL |
+
+When enabled, Sage scans tool inputs (commands, file content, edits) through the Windows AMSI API before execution. This integrates with any installed antimalware provider (Windows Defender, etc.) to detect malicious content. AMSI scanning is automatically skipped on unsupported platforms (macOS, non-WSL Linux). See [AMSI Scanning](amsi-scanning.md) for details.
+
 ### `heuristics_enabled`
 
 Boolean, default `true`. Set to `false` to disable all local pattern matching.
@@ -72,13 +83,13 @@ Boolean, default `true`. Set to `false` to disable all local pattern matching.
 | `enabled` | `true` | Enable verdict caching |
 | `ttl_malicious_seconds` | `3600` | Cache TTL for malicious verdicts (1 hour) |
 | `ttl_clean_seconds` | `86400` | Cache TTL for clean verdicts (24 hours) |
-| `path` | `~/.sage/cache.json` | Cache file location |
+| `path` | `~/.sage/cache.json` | Cache file location (must remain under `~/.sage`) |
 
 ### `allowlist`
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `path` | `~/.sage/allowlist.json` | Allowlist file location |
+| `path` | `~/.sage/allowlist.json` | Allowlist file location (must remain under `~/.sage`) |
 
 The allowlist stores user overrides for false positives. When Sage returns an `ask` verdict and the user proceeds, the artifact can be allowlisted for future sessions.
 
@@ -88,11 +99,15 @@ The allowlist stores user overrides for false positives. When Sage returns an `a
 |-------|---------|-------------|
 | `enabled` | `true` | Enable JSONL audit logging |
 | `log_clean` | `false` | Also log `allow` verdicts |
-| `path` | `~/.sage/audit.jsonl` | Log file location |
+| `path` | `~/.sage/audit.jsonl` | Log file location (must remain under `~/.sage`) |
+
+Relative `path` values are resolved under `~/.sage`. Paths that escape that directory (or resolve to the `~/.sage` directory itself) are ignored and fall back to defaults.
 
 ### `sensitivity`
 
 One of `"paranoid"`, `"balanced"`, or `"relaxed"`. Default: `"balanced"`. See [How It Works](how-it-works.md#sensitivity-presets).
+
+In `paranoid` mode, `ask` verdicts are promoted to `deny` on OpenClaw and OpenCode connectors. These connectors rely on the agent to relay approval prompts, making them vulnerable to prompt-injection attacks that could persuade the agent to auto-approve. Claude Code and Cursor are unaffected — they use modal dialogs that require direct user interaction.
 
 ### `disabled_threats`
 
@@ -114,5 +129,6 @@ Use this to permanently suppress specific rules that don't apply to your workflo
 | `~/.sage/cache.json` | Verdict cache |
 | `~/.sage/allowlist.json` | User allowlist |
 | `~/.sage/audit.jsonl` | Audit log |
+| `~/.sage/installation-id` | Random UUID identifying this installation |
 | `~/.sage/pending-approvals.json` | Pending approval state (transient, managed by PreToolUse hook) |
 | `~/.sage/consumed-approvals.json` | Consumed approvals for MCP allowlist flow (10-min TTL entries) |

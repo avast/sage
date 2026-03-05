@@ -8,7 +8,7 @@ const shared = {
 	platform: "node",
 	target: "node18",
 	format: "cjs",
-	external: [],
+	external: ["koffi"],
 	sourcemap: true,
 	define: { __SAGE_VERSION__: JSON.stringify(pkg.version) },
 };

@@ -66,7 +66,7 @@
   severity: critical
   confidence: 0.95
   action: block
-  pattern: "\\brm\\s+(-[a-zA-Z]*f[a-zA-Z]*\\s+)?(-[a-zA-Z]*r[a-zA-Z]*\\s+)?/\\s*$|\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*\\s+)?(-[a-zA-Z]*f[a-zA-Z]*\\s+)?/\\s*$|\\brm\\s+-[a-zA-Z]*rf[a-zA-Z]*\\s+/"
+  pattern: "\\brm\\s+(-[a-zA-Z]*f[a-zA-Z]*\\s+)?(-[a-zA-Z]*r[a-zA-Z]*\\s+)?/(\\s|$|[;&|*])|\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*\\s+)?(-[a-zA-Z]*f[a-zA-Z]*\\s+)?/(\\s|$|[;&|*])|\\brm\\s+-[a-zA-Z]*rf[a-zA-Z]*\\s+/(\\s|$|[;&|*])"
   match_on: command
   title: "Recursive forced deletion from root"
   expires_at: null
@@ -253,5 +253,55 @@
   pattern: "\\b(while|for)\\b[^;]*;\\s*do[^;]*\\b(bash|sh|curl|wget)\\b"
   match_on: command
   title: "Loop executing shell or download commands"
+  expires_at: null
+  revoked: false
+
+# --- Cross-platform reverse shells (scripting languages) ---
+
+# Python socket reverse shell
+- id: "CLT-CMD-023"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "python[23]?\\s+-c.*socket.*connect.*(\\/bin\\/zsh|\\/bin\\/sh|\\/bin\\/bash)"
+  match_on: command
+  title: "Python reverse shell via socket"
+  expires_at: null
+  revoked: false
+
+# Ruby TCPSocket reverse shell
+- id: "CLT-CMD-024"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "ruby\\s+-e.*TCPSocket.*exec.*(\\/bin\\/zsh|\\/bin\\/sh)"
+  match_on: command
+  title: "Ruby reverse shell via TCPSocket"
+  expires_at: null
+  revoked: false
+
+# zsh -c reverse shell pattern
+- id: "CLT-CMD-025"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "\\bzsh\\s+-c\\b.*\\b(exec|socket|/dev/tcp)\\b"
+  match_on: command
+  title: "Zsh reverse shell pattern"
+  expires_at: null
+  revoked: false
+
+# --- Recursive deletion of critical system directories ---
+- id: "CLT-CMD-026"
+  category: tool
+  severity: critical
+  confidence: 0.95
+  action: block
+  pattern: "\\brm\\s+(-[a-zA-Z]+\\s+)*-[a-zA-Z]*[rR][a-zA-Z]*(\\s+-[a-zA-Z]+)*\\s+/(home|Users|etc|usr|var|boot|bin|sbin|lib|lib64|opt|root|System|Applications|Library|Volumes|private|mnt)\\b/?(\\s|$|[;&|])"
+  match_on: command
+  title: "Recursive deletion of critical system directory"
   expires_at: null
   revoked: false

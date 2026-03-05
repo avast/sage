@@ -84,3 +84,15 @@
   title: "Function redefinition of security-relevant command"
   expires_at: null
   revoked: false
+
+# --- Python encoded payload execution ---
+- id: "CLT-OBFUS-008"
+  category: tool
+  severity: critical
+  confidence: 0.85
+  action: block
+  pattern: "python[23]?\\s+-c\\s+[\"'].*\\b(exec|eval|compile|__import__)\\b.*\\b(base64|decode|decompress)\\b"
+  match_on: command
+  title: "Python encoded payload execution via -c"
+  expires_at: null
+  revoked: false

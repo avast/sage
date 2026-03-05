@@ -13,6 +13,7 @@ import {
 	evaluateToolCall,
 	extractFromBash,
 	extractFromEdit,
+	extractFromRead,
 	extractFromWebFetch,
 	extractFromWrite,
 	type Logger,
@@ -104,6 +105,11 @@ async function main(): Promise<void> {
 		case "Edit":
 			artifacts = extractFromEdit(toolInput);
 			break;
+		case "Read":
+			artifacts = extractFromRead(toolInput);
+			break;
+		// No Delete case — Claude Code does not expose a Delete tool.
+		// Delete is handled only in VS Code and Cursor connectors.
 		default:
 			process.stdout.write("{}\n");
 			return;

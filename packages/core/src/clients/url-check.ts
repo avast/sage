@@ -33,19 +33,28 @@ function getProviderName(): string {
 	return "avast";
 }
 
+function getSubdomain(): string {
+	return "svc";
+}
+
+function buildDomain(): string {
+	return [getSubdomain(), getProviderName(), getProviderTld()].join(".");
+}
+
+export function resolveEndpoint(path: string): string {
+	const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+	return `https://${SERVICE_NAME}-proxy.${buildDomain()}${normalizedPath}`;
+}
+
 export class UrlCheckClient {
 	private readonly endpoint: string;
 	private readonly timeoutMs: number;
 	private readonly logger: Logger;
 
 	constructor(config?: Partial<UrlCheckConfig>, logger: Logger = nullLogger) {
-		this.endpoint = config?.endpoint ?? this.resolveEndpoint();
+		this.endpoint = config?.endpoint ?? resolveEndpoint("/url-check");
 		this.timeoutMs = (config?.timeout_seconds ?? DEFAULT_TIMEOUT) * 1000;
 		this.logger = logger;
-	}
-
-	private buildPath(): string {
-		return "/url-check";
 	}
 
 	async checkUrls(urls: string[]): Promise<UrlCheckResult[]> {
@@ -58,10 +67,6 @@ export class UrlCheckClient {
 
 		const batchResults = await Promise.all(batches.map((batch) => this.checkBatch(batch)));
 		return batchResults.flat();
-	}
-
-	private getSubdomain(): string {
-		return "svc";
 	}
 
 	private async checkBatch(urls: string[]): Promise<UrlCheckResult[]> {
@@ -104,10 +109,6 @@ export class UrlCheckClient {
 		}
 	}
 
-	private buildDomain(): string {
-		return [this.getSubdomain(), getProviderName(), getProviderTld()].join(".");
-	}
-
 	private parseAnswer(answer: Record<string, unknown>): UrlCheckResult | null {
 		try {
 			const url = (answer.key ?? "") as string;
@@ -135,9 +136,5 @@ export class UrlCheckClient {
 			this.logger.warn("Failed to parse answer", { error: String(e) });
 			return null;
 		}
-	}
-
-	private resolveEndpoint(): string {
-		return `https://${SERVICE_NAME}-proxy.${this.buildDomain()}${this.buildPath()}`;
 	}
 }

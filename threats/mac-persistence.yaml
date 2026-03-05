@@ -1,0 +1,117 @@
+# macOS persistence mechanism threat patterns for Sage
+# Author: Gen Digital Inc.
+# License: DRL-1.1 (see threats/LICENSE)
+# Covers: LaunchAgents, Login Items, Authorization plugins, periodic scripts, emond, dylib hijack
+
+# LaunchAgent/LaunchDaemon plist (migrated from persistence.yaml CLT-PERSIST-004)
+- id: "CLT-MAC-PERSIST-001"
+  category: tool
+  severity: high
+  confidence: 0.90
+  action: block
+  pattern: "(LaunchAgents|LaunchDaemons)/.*\\.plist"
+  match_on: command
+  title: "macOS LaunchAgent/LaunchDaemon persistence"
+  expires_at: null
+  revoked: false
+
+# Login Items via osascript
+- id: "CLT-MAC-PERSIST-002"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\bosascript\\b.*login item"
+  case_insensitive: true
+  match_on: command
+  title: "Add login item via osascript"
+  expires_at: null
+  revoked: false
+
+# Login window manipulation via defaults
+- id: "CLT-MAC-PERSIST-003"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\bdefaults\\b.*\\bwrite\\b.*loginwindow.*(AutoLaunch|LoginHook|LogoutHook)"
+  case_insensitive: true
+  match_on: command
+  title: "Login window hook manipulation via defaults write"
+  expires_at: null
+  revoked: false
+
+# Authorization plugin persistence
+- id: "CLT-MAC-PERSIST-004"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "/Library/Security/SecurityAgentPlugins/"
+  match_on: command
+  title: "Authorization plugin drop in SecurityAgentPlugins"
+  expires_at: null
+  revoked: false
+
+# Periodic script drop
+- id: "CLT-MAC-PERSIST-005"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "/etc/periodic/(daily|weekly|monthly)/"
+  match_on: command
+  title: "Periodic script persistence drop"
+  expires_at: null
+  revoked: false
+
+# at job scheduling moved to persistence.yaml (CLT-PERSIST-008)
+
+# emond rules
+- id: "CLT-MAC-PERSIST-006"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "/etc/emond\\.d/rules/"
+  match_on: command
+  title: "Event Monitor daemon rules persistence"
+  expires_at: null
+  revoked: false
+
+# DYLD_INSERT_LIBRARIES in RC files
+- id: "CLT-MAC-PERSIST-007"
+  category: tool
+  severity: critical
+  confidence: 0.90
+  action: block
+  pattern: "DYLD_INSERT_LIBRARIES"
+  match_on: command
+  title: "DYLD_INSERT_LIBRARIES dylib injection (persistence/hijack)"
+  expires_at: null
+  revoked: false
+
+# Folder Actions via osascript
+- id: "CLT-MAC-PERSIST-008"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\bosascript\\b.*folder action"
+  case_insensitive: true
+  match_on: command
+  title: "Folder Action script persistence via osascript"
+  expires_at: null
+  revoked: false
+
+# launchctl load/bootstrap persistent agent
+- id: "CLT-MAC-PERSIST-009"
+  category: tool
+  severity: high
+  confidence: 0.85
+  action: require_approval
+  pattern: "\\blaunchctl\\b.*\\b(load|bootstrap)\\b"
+  match_on: command
+  title: "Load persistent launch agent/daemon via launchctl"
+  expires_at: null
+  revoked: false

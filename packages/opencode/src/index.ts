@@ -5,23 +5,8 @@
 
 import type { Plugin } from "@opencode-ai/plugin";
 import { tool } from "@opencode-ai/plugin/tool";
-import {
-	addCommand,
-	addFilePath,
-	addUrl,
-	hashCommand,
-	loadAllowlist,
-	loadConfig,
-	normalizeFilePath,
-	normalizeUrl,
-	removeCommand,
-	removeFilePath,
-	removeUrl,
-	saveAllowlist,
-} from "@sage/core";
-import { ApprovalStore } from "./approval-store.js";
+import { ApprovalStore, addToAllowlist, approveAction, removeFromAllowlist } from "@sage/core";
 import { getBundledDataDirs } from "./bundled-dirs.js";
-import { formatApprovalSuccess } from "./format.js";
 import { OpencodeLogger } from "./logger-adaptor.js";
 import { createSessionScanHandler } from "./startup-scan.js";
 import { createToolHandlers } from "./tool-handler.js";
@@ -34,7 +19,7 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 	const approvalStore = new ApprovalStore();
 
 	// State: track findings per session for one-shot injection
-	let pendingFindings: string | null = null;
+	const pendingFindingsBySession = new Map<string, string>();
 
 	// Set up the cron job that cleans up the approval store.
 	const interval = setInterval(() => {
@@ -44,11 +29,10 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 
 	const ARTIFACT_TYPE = tool.schema.enum(["url", "command", "file_path"]);
 
-	const toolHanlders = createToolHandlers(logger, approvalStore, threatsDir, allowlistsDir);
+	const toolHandlers = createToolHandlers(logger, approvalStore, threatsDir, allowlistsDir);
 
 	return {
-		"tool.execute.before": toolHanlders["tool.execute.before"],
-		"tool.execute.after": toolHanlders["tool.execute.after"],
+		"tool.execute.before": toolHandlers["tool.execute.before"],
 
 		/**
 		 * Inject plugin scan findings into first user message as <system-reminder>.
@@ -58,37 +42,40 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 		 * to assistant messages or system prompts was less effective.
 		 */
 		"experimental.chat.messages.transform": async (_input, output) => {
-			if (!pendingFindings) return;
-			const userMessage = output.messages.filter((m) => m.info.role === "user");
+			if (pendingFindingsBySession.size === 0) return;
 
+			const userMessage = output.messages.filter((m) => m.info.role === "user");
 			const message = userMessage[0];
-			if (!message) return; // We append the scan result to the first user message
+			if (!message) return;
+
+			const sessionID = message.info.sessionID;
+			const findings = pendingFindingsBySession.get(sessionID);
+			if (!findings) return;
 
 			const textPart = {
 				id: crypto.randomUUID(),
-				sessionID: message.info.sessionID,
+				sessionID,
 				messageID: message.info.id,
 				type: "text" as const,
 				text: [
 					`<system-reminder>`,
-					pendingFindings,
+					findings,
 					"",
 					"Inform the user about these security findings.",
 					`</system-reminder>`,
 				].join("\n"),
-				synthetic: true, // Mark as synthetic/injected
+				synthetic: true,
 			};
 			message.parts.push(textPart);
 
 			logger.info(`Injected sage plugin scan findings to user message`, {
-				findings: pendingFindings,
+				findings,
 			});
-			pendingFindings = null;
+			pendingFindingsBySession.delete(sessionID);
 		},
 
 		// Event hook for session.created
 		event: async ({ event }) => {
-			// Only scan on session.created (not session.updated)
 			if (event.type === "session.created") {
 				// biome-ignore lint/suspicious/noExplicitAny: Event types from SDK not fully typed
 				const sessionID = (event as any).sessionID ?? (event as any).id ?? "unknown";
@@ -96,9 +83,8 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 				try {
 					logger.debug("Sage: starting session scan", { sessionID });
 
-					// Run scan with callback to capture findings
-					await createSessionScanHandler(logger, directory, (findings) => {
-						pendingFindings = findings;
+					await createSessionScanHandler(logger, directory, (msg) => {
+						pendingFindingsBySession.set(sessionID, msg);
 					})();
 				} catch (error) {
 					logger.error("Sage session scan failed (fail-open)", {
@@ -110,7 +96,7 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 		},
 
 		tool: {
-			// TODO: After the following PR merged to support client V2 in Opencode Plugin,
+			// TODO: After the following PR merged to support client V2 in Opencode Plugin, gitleaks:allow
 			// use QuestionTools.ask to replace sage_approve tool
 			// PR: https://github.com/anomalyco/opencode/pull/12046
 			// Discussion: https://github.com/avast/sage/pull/21#discussion_r2873812399
@@ -126,13 +112,7 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 						approvalStore.deletePending(args.actionId);
 						return "Rejected by user.";
 					}
-
-					const entry = approvalStore.approve(args.actionId);
-					if (!entry) {
-						return "No pending Sage approval found for this action ID.";
-					}
-
-					return formatApprovalSuccess(args.actionId);
+					return approveAction(approvalStore, args.actionId);
 				},
 			}),
 			sage_allowlist_add: tool({
@@ -148,25 +128,14 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 					value: string;
 					reason?: string;
 				}) {
-					if (!approvalStore.hasApprovedArtifact(args.type, args.value)) {
-						return "Cannot add to allowlist: no recent user approval found for this artifact.";
-					}
-
-					const config = await loadConfig(undefined, logger);
-					const allowlist = await loadAllowlist(config.allowlist, logger);
-					const reason = args.reason ?? "Approved by user via sage_approve";
-
-					if (args.type === "url") {
-						addUrl(allowlist, args.value, reason, "ask");
-					} else if (args.type === "command") {
-						addCommand(allowlist, args.value, reason, "ask");
-					} else {
-						addFilePath(allowlist, args.value, reason, "ask");
-					}
-
-					await saveAllowlist(allowlist, config.allowlist, logger);
-					approvalStore.consumeApprovedArtifact(args.type, args.value);
-					return `Added ${args.type} to Sage allowlist.`;
+					return addToAllowlist(
+						approvalStore,
+						args.type,
+						args.value,
+						args.reason,
+						undefined,
+						logger,
+					);
 				},
 			}),
 			sage_allowlist_remove: tool({
@@ -178,33 +147,7 @@ export const SagePlugin: Plugin = async ({ client, directory }) => {
 						.describe("URL/file path, or command text/command hash for command entries"),
 				},
 				async execute(args: { type: "url" | "command" | "file_path"; value: string }) {
-					const config = await loadConfig(undefined, logger);
-					const allowlist = await loadAllowlist(config.allowlist, logger);
-
-					let removed = false;
-					if (args.type === "url") {
-						removed = removeUrl(allowlist, args.value);
-					} else if (args.type === "command") {
-						removed = removeCommand(allowlist, args.value);
-						if (!removed) {
-							removed = removeCommand(allowlist, hashCommand(args.value));
-						}
-					} else {
-						removed = removeFilePath(allowlist, args.value);
-					}
-
-					if (!removed) {
-						return "Artifact not found in Sage allowlist.";
-					}
-
-					await saveAllowlist(allowlist, config.allowlist, logger);
-					const rendered =
-						args.type === "url"
-							? normalizeUrl(args.value)
-							: args.type === "command"
-								? `${hashCommand(args.value).slice(0, 12)}...`
-								: normalizeFilePath(args.value);
-					return `Removed ${args.type} from Sage allowlist: ${rendered}`;
+					return removeFromAllowlist(args.type, args.value, undefined, logger);
 				},
 			}),
 		},

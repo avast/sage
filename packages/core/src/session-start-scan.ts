@@ -12,23 +12,26 @@ import {
 	saveScanCache,
 	storeResult,
 } from "./plugin-scan-cache.js";
-import { discoverPlugins, scanPlugin } from "./plugin-scanner.js";
+import { scanPlugin } from "./plugin-scanner.js";
 import { loadThreats } from "./threat-loader.js";
 import { loadTrustedDomains } from "./trusted-domains.js";
-import type { Logger, PluginFinding, PluginFindingData, PluginScanResult } from "./types.js";
+import type {
+	Logger,
+	PluginFinding,
+	PluginFindingData,
+	PluginInfo,
+	PluginScanResult,
+} from "./types.js";
 import { nullLogger } from "./types.js";
 
-const DEFAULT_MAX_FINDINGS_PER_PLUGIN = 5;
-
 export interface SessionStartScanContext {
+	plugins: PluginInfo[];
 	threatsDir: string;
 	allowlistsDir: string;
 	sageVersion?: string;
 	logger?: Logger;
 	configPath?: string;
-	pluginsRegistryPath?: string;
 	scanCachePath?: string;
-	excludePluginPrefixes?: string[];
 	checkUrls?: boolean;
 	checkFileHashes?: boolean;
 }
@@ -58,42 +61,8 @@ export function toFindingData(finding: PluginFinding): PluginFindingData {
 }
 
 export function toAuditFindingData(finding: PluginFinding): Record<string, unknown> {
-	return {
-		threat_id: finding.threatId,
-		title: finding.title,
-		severity: finding.severity,
-		confidence: finding.confidence,
-		artifact: finding.artifact,
-		source_file: finding.sourceFile,
-	};
-}
-
-export function formatSessionStartFindings(
-	results: PluginScanResult[],
-	maxFindingsPerPlugin = DEFAULT_MAX_FINDINGS_PER_PLUGIN,
-): string {
-	const messages: string[] = [];
-	for (const result of results) {
-		const highCrit = result.findings.filter(
-			(f) => f.severity === "critical" || f.severity === "high",
-		);
-		if (highCrit.length === 0) continue;
-
-		const details: string[] = [];
-		for (const finding of highCrit.slice(0, maxFindingsPerPlugin)) {
-			details.push(
-				`${finding.threatId} (${finding.severity.toUpperCase()}) ${finding.title} [${finding.sourceFile}]`,
-			);
-		}
-
-		const overflow = highCrit.length - maxFindingsPerPlugin;
-		if (overflow > 0) {
-			details.push(`... and ${overflow} more`);
-		}
-
-		messages.push(`Plugin '${result.plugin.key}': ${details.join("; ")}`);
-	}
-	return messages.join("\n");
+	const { action: _, ...rest } = toFindingData(finding);
+	return rest;
 }
 
 export async function runSessionStartScan(
@@ -107,13 +76,7 @@ export async function runSessionStartScan(
 		return [];
 	}
 
-	let plugins = await discoverPlugins(context.pluginsRegistryPath, logger);
-	if (context.excludePluginPrefixes && context.excludePluginPrefixes.length > 0) {
-		plugins = plugins.filter(
-			(plugin) =>
-				!context.excludePluginPrefixes?.some((prefix) => prefix && plugin.key.startsWith(prefix)),
-		);
-	}
+	const plugins = context.plugins;
 	if (plugins.length === 0) {
 		return [];
 	}

@@ -1,36 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { CONFIDENCE_THRESHOLD, DecisionEngine } from "../engine.js";
-import type { HeuristicMatch, PackageCheckResult, Threat, UrlCheckResult } from "../types.js";
-
-function makeThreat(overrides: Partial<Threat> = {}): Threat {
-	return {
-		id: "CLT-TEST-001",
-		category: "tool",
-		severity: "critical",
-		confidence: 0.95,
-		action: "block",
-		pattern: "test",
-		compiledPattern: /test/,
-		matchOn: new Set(["command"]),
-		title: "Test threat",
-		expiresAt: null,
-		revoked: false,
-		...overrides,
-	};
-}
-
-function makeMatch(overrides: Partial<Threat> = {}): HeuristicMatch {
-	return {
-		threat: makeThreat(overrides),
-		artifact: "test_command",
-		matchValue: "test",
-	};
-}
+import type { AmsiCheckResult, PackageCheckResult, UrlCheckResult } from "../types.js";
+import { makeMatch } from "./test-helper.js";
 
 describe("DecisionEngine", () => {
 	it("returns allow for no signals", async () => {
 		const engine = new DecisionEngine();
-		const verdict = await engine.decide([], []);
+		const verdict = await engine.decide({ heuristicMatches: [], urlCheckResults: [] });
 		expect(verdict.decision).toBe("allow");
 		expect(verdict.category).toBe("none");
 		expect(verdict.confidence).toBe(1.0);
@@ -39,7 +15,7 @@ describe("DecisionEngine", () => {
 	it("returns deny for heuristic block", async () => {
 		const engine = new DecisionEngine();
 		const match = makeMatch({ action: "block", confidence: 0.95, severity: "critical" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("deny");
 		expect(verdict.severity).toBe("critical");
 		expect(verdict.source).toBe("heuristic");
@@ -48,7 +24,7 @@ describe("DecisionEngine", () => {
 	it("returns ask for require_approval", async () => {
 		const engine = new DecisionEngine();
 		const match = makeMatch({ action: "require_approval", confidence: 0.9, severity: "high" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("ask");
 		expect(verdict.severity).toBe("warning");
 	});
@@ -56,7 +32,7 @@ describe("DecisionEngine", () => {
 	it("returns allow for log action", async () => {
 		const engine = new DecisionEngine();
 		const match = makeMatch({ action: "log", confidence: 0.9, severity: "low" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("allow");
 		expect(verdict.severity).toBe("info");
 	});
@@ -69,7 +45,7 @@ describe("DecisionEngine", () => {
 			findings: [{ severityName: "malware", typeName: "trojan" }],
 			flags: [],
 		};
-		const verdict = await engine.decide([], [result]);
+		const verdict = await engine.decide({ heuristicMatches: [], urlCheckResults: [result] });
 		expect(verdict.decision).toBe("deny");
 		expect(verdict.confidence).toBe(1.0);
 		expect(verdict.severity).toBe("critical");
@@ -84,7 +60,7 @@ describe("DecisionEngine", () => {
 			findings: [],
 			flags: ["TYPOSQUATTING"],
 		};
-		const verdict = await engine.decide([], [result]);
+		const verdict = await engine.decide({ heuristicMatches: [], urlCheckResults: [result] });
 		expect(verdict.decision).toBe("ask");
 		expect(verdict.severity).toBe("warning");
 		expect(verdict.confidence).toBe(0.75);
@@ -104,7 +80,10 @@ describe("DecisionEngine", () => {
 			confidence: 0.95,
 			severity: "critical",
 		});
-		const verdict = await engine.decide([askMatch, denyMatch], []);
+		const verdict = await engine.decide({
+			heuristicMatches: [askMatch, denyMatch],
+			urlCheckResults: [],
+		});
 		expect(verdict.decision).toBe("deny");
 	});
 
@@ -115,21 +94,21 @@ describe("DecisionEngine", () => {
 			confidence: CONFIDENCE_THRESHOLD,
 			severity: "critical",
 		});
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("deny");
 	});
 
 	it("softens deny to ask below threshold", async () => {
 		const engine = new DecisionEngine();
 		const match = makeMatch({ action: "block", confidence: 0.8, severity: "critical" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("ask");
 	});
 
 	it("maps high severity to warning", async () => {
 		const engine = new DecisionEngine();
 		const match = makeMatch({ action: "block", confidence: 0.95, severity: "high" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.severity).toBe("warning");
 	});
 
@@ -140,14 +119,14 @@ describe("DecisionEngine", () => {
 			confidence: 0.9,
 			severity: "medium",
 		});
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.severity).toBe("warning");
 	});
 
 	it("maps low severity to info", async () => {
 		const engine = new DecisionEngine();
 		const match = makeMatch({ action: "log", confidence: 0.9, severity: "low" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.severity).toBe("info");
 	});
 
@@ -160,7 +139,7 @@ describe("DecisionEngine", () => {
 			confidence: 0.9,
 			title: "Reason B",
 		});
-		const verdict = await engine.decide([m1, m2], []);
+		const verdict = await engine.decide({ heuristicMatches: [m1, m2], urlCheckResults: [] });
 		expect(verdict.reasons).toHaveLength(2);
 	});
 
@@ -177,7 +156,10 @@ describe("DecisionEngine", () => {
 			findings: [{ severityName: "malware", typeName: "trojan" }],
 			flags: [],
 		};
-		const verdict = await engine.decide([match], [urlCheck]);
+		const verdict = await engine.decide({
+			heuristicMatches: [match],
+			urlCheckResults: [urlCheck],
+		});
 		expect(verdict.decision).toBe("deny");
 		expect(verdict.confidence).toBe(1.0);
 	});
@@ -185,7 +167,7 @@ describe("DecisionEngine", () => {
 	it("includes matched threat ID", async () => {
 		const engine = new DecisionEngine();
 		const match = makeMatch({ id: "CLT-CMD-001", action: "block", confidence: 0.95 });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.matchedThreatId).toBe("CLT-CMD-001");
 	});
 });
@@ -299,42 +281,121 @@ describe("SensitivityPresets", () => {
 	it("paranoid does not soften at 0.75", async () => {
 		const engine = new DecisionEngine("paranoid");
 		const match = makeMatch({ action: "block", confidence: 0.75, severity: "critical" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("deny");
 	});
 
 	it("paranoid softens below 0.70", async () => {
 		const engine = new DecisionEngine("paranoid");
 		const match = makeMatch({ action: "block", confidence: 0.65, severity: "critical" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("ask");
 	});
 
 	it("relaxed softens below 0.95", async () => {
 		const engine = new DecisionEngine("relaxed");
 		const match = makeMatch({ action: "block", confidence: 0.9, severity: "critical" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("ask");
 	});
 
 	it("relaxed keeps deny at 0.95", async () => {
 		const engine = new DecisionEngine("relaxed");
 		const match = makeMatch({ action: "block", confidence: 0.95, severity: "critical" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("deny");
 	});
 
 	it("balanced is default", async () => {
 		const engine = new DecisionEngine();
 		const match = makeMatch({ action: "block", confidence: 0.84, severity: "critical" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("ask");
 	});
 
 	it("unknown sensitivity falls back to default", async () => {
 		const engine = new DecisionEngine("unknown");
 		const match = makeMatch({ action: "block", confidence: 0.84, severity: "critical" });
-		const verdict = await engine.decide([match], []);
+		const verdict = await engine.decide({ heuristicMatches: [match], urlCheckResults: [] });
 		expect(verdict.decision).toBe("ask");
+	});
+});
+
+describe("AmsiCheckSignals", () => {
+	it("AMSI detected produces deny/critical at 1.0", async () => {
+		const engine = new DecisionEngine();
+		const amsi: AmsiCheckResult = {
+			content: "malicious content",
+			contentName: "Bash:command",
+			amsiResult: 32768,
+			isDetected: true,
+			isBlockedByAdmin: false,
+		};
+		const verdict = await engine.decide({
+			heuristicMatches: [],
+			urlCheckResults: [],
+			amsiCheckResults: [amsi],
+		});
+		expect(verdict.decision).toBe("deny");
+		expect(verdict.severity).toBe("critical");
+		expect(verdict.confidence).toBe(1.0);
+		expect(verdict.source).toBe("amsi");
+		expect(verdict.category).toBe("malware");
+	});
+
+	it("AMSI blocked by admin produces deny/critical at 0.9", async () => {
+		const engine = new DecisionEngine();
+		const amsi: AmsiCheckResult = {
+			content: "blocked content",
+			contentName: "Write:/tmp/test.ps1",
+			amsiResult: 16384,
+			isDetected: false,
+			isBlockedByAdmin: true,
+		};
+		const verdict = await engine.decide({
+			heuristicMatches: [],
+			urlCheckResults: [],
+			amsiCheckResults: [amsi],
+		});
+		expect(verdict.decision).toBe("deny");
+		expect(verdict.severity).toBe("critical");
+		expect(verdict.confidence).toBe(0.9);
+		expect(verdict.source).toBe("amsi");
+	});
+
+	it("AMSI clean produces no signal (allow)", async () => {
+		const engine = new DecisionEngine();
+		const amsi: AmsiCheckResult = {
+			content: "echo hello",
+			contentName: "Bash:command",
+			amsiResult: 0,
+			isDetected: false,
+			isBlockedByAdmin: false,
+		};
+		const verdict = await engine.decide({
+			heuristicMatches: [],
+			urlCheckResults: [],
+			amsiCheckResults: [amsi],
+		});
+		expect(verdict.decision).toBe("allow");
+	});
+
+	it("AMSI detected wins over heuristic ask (merge precedence)", async () => {
+		const engine = new DecisionEngine();
+		const match = makeMatch({ action: "require_approval", confidence: 0.9, severity: "high" });
+		const amsi: AmsiCheckResult = {
+			content: "malicious",
+			contentName: "Bash:command",
+			amsiResult: 32768,
+			isDetected: true,
+			isBlockedByAdmin: false,
+		};
+		const verdict = await engine.decide({
+			heuristicMatches: [match],
+			urlCheckResults: [],
+			amsiCheckResults: [amsi],
+		});
+		expect(verdict.decision).toBe("deny");
+		expect(verdict.confidence).toBe(1.0);
 	});
 });

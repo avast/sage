@@ -1,16 +1,22 @@
 /**
- * Version check — fetches latest Sage version from the GitHub repository
- * and compares it against the locally running version.
+ * Version check — POSTs environment context to the Sage version-check
+ * endpoint to receive platform-aware update guidance.
  * Fail-open: returns null on any error so it never blocks startup.
  */
 
-import type { Logger } from "./types.js";
+import { release } from "node:os";
+import { resolveEndpoint } from "./clients/url-check.js";
+import type { AgentRuntime, Logger } from "./types.js";
 import { nullLogger } from "./types.js";
 
-const GITHUB_RAW_URL =
-	"https://raw.githubusercontent.com/avast/sage/main/packages/core/package.json";
-
 const DEFAULT_TIMEOUT_MS = 5_000;
+
+/** Environment context sent alongside the version check for platform-aware responses. */
+export interface VersionCheckContext {
+	agentRuntime: AgentRuntime;
+	agentRuntimeVersion?: string;
+	iid?: string;
+}
 
 export interface VersionCheckResult {
 	currentVersion: string;
@@ -42,13 +48,15 @@ export function isNewerVersion(current: string, latest: string): boolean {
 }
 
 /**
- * Fetch the latest published version from the GitHub repository.
+ * Fetch the latest published version from the version-check endpoint.
+ * Sends environment context so the backend can serve platform-specific guidance.
  * Returns null on any failure (network, parse, timeout).
  */
 export async function checkForUpdate(
 	currentVersion: string,
 	logger: Logger = nullLogger,
 	timeoutMs: number = DEFAULT_TIMEOUT_MS,
+	context?: VersionCheckContext,
 ): Promise<VersionCheckResult | null> {
 	if (currentVersion === "dev") {
 		logger.debug("Skipping version check for dev build");
@@ -56,14 +64,23 @@ export async function checkForUpdate(
 	}
 
 	try {
-		const controller = new AbortController();
-		const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-		const response = await fetch(GITHUB_RAW_URL, {
-			signal: controller.signal,
-			headers: { Accept: "application/json" },
+		const response = await fetch(resolveEndpoint("/version-check"), {
+			method: "POST",
+			signal: AbortSignal.timeout(timeoutMs),
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				sage_version: currentVersion,
+				agent_runtime: context?.agentRuntime,
+				agent_runtime_version: context?.agentRuntimeVersion,
+				os: process.platform,
+				os_version: release(),
+				arch: process.arch,
+				iid: context?.iid,
+			}),
 		});
-		clearTimeout(timer);
 
 		if (!response.ok) {
 			logger.debug(`Version check HTTP ${response.status}`);

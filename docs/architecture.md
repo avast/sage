@@ -29,7 +29,10 @@ The core library contains all detection logic. It has no platform dependencies a
 | `trusted-domains.ts` | Trusted domain loading and matching |
 | `plugin-scanner.ts` | Plugin file scanning |
 | `package-checker.ts` | npm/PyPI supply-chain checks |
-| `clients/url-check.ts` | URL reputation API client (native fetch) |
+| `installation-id.ts` | Persistent installation UUID (`~/.sage/installation-id`) |
+| `version-check.ts` | Version check via POST with environment context |
+| `session-start.ts` | Session start orchestrator (scan + version check) |
+| `clients/url-check.ts` | URL reputation API client and endpoint resolver |
 | `clients/file-check.ts` | File reputation API client |
 | `clients/package-registry.ts` | npm/PyPI registry client |
 
@@ -68,7 +71,7 @@ Hook stdin (JSON) -> extract artifacts -> check allowlist -> check cache
   -> cache result -> audit log -> hook stdout (JSON)
 ```
 
-Hooks always exit 0. Errors return an `allow` verdict.
+Claude Code hooks exit 0. Errors return an `allow` verdict.
 
 ### OpenClaw
 
@@ -88,6 +91,8 @@ Managed hook intercepts tool call -> spawns sage-hook.cjs subprocess
   -> heuristics + URL check + package check -> DecisionEngine
   -> cache result -> audit log -> return verdict
 ```
+
+Extension hooks (Cursor / VS Code) always exit with code `0`; the host reads the JSON response to enforce blocking.
 
 ## Key Design Decisions
 

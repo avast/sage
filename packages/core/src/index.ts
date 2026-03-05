@@ -13,10 +13,15 @@ export {
 	removeUrl,
 	saveAllowlist,
 } from "./allowlist.js";
+export type { ApprovedEntry, PendingEntry } from "./approval-store.js";
+// Approval store
+export { ApprovalStore } from "./approval-store.js";
 // Audit log
 export { getRecentEntries, logPluginScan, logVerdict } from "./audit-log.js";
 // Cache
 export { VerdictCache } from "./cache.js";
+// AMSI client
+export { AmsiClient, isAmsiSupported } from "./clients/amsi.js";
 export type { FileCheckBatchResult, FileCheckResult } from "./clients/file-check.js";
 // File-check client
 export { FileCheckClient } from "./clients/file-check.js";
@@ -26,7 +31,7 @@ export { RegistryClient } from "./clients/package-registry.js";
 // URL check client
 export { UrlCheckClient } from "./clients/url-check.js";
 // Config
-export { loadConfig, resolvePath } from "./config.js";
+export { loadConfig, resolvePath, SAGE_DIR } from "./config.js";
 // Decision engine
 export { CONFIDENCE_THRESHOLD, DecisionEngine } from "./engine.js";
 // Runtime evaluator
@@ -39,7 +44,9 @@ export {
 // Extractors
 export {
 	extractFromBash,
+	extractFromDelete,
 	extractFromEdit,
+	extractFromRead,
 	extractFromWebFetch,
 	extractFromWrite,
 	extractUrls,
@@ -48,15 +55,31 @@ export {
 export { atomicWriteJson, getFileContent, pruneOrphanedTmpFiles } from "./file-utils.js";
 // Format (shared alert formatting)
 export {
+	formatSessionStartMessage,
 	formatStartupClean,
 	formatThreatBanner,
 	formatUpdateNotice,
 	kv,
+	PAD,
+	SEPARATOR_WIDTH,
 	separatorLine,
 	severityEmoji,
 } from "./format.js";
+// Guard (soft-gated connector orchestrator)
+export {
+	addToAllowlist,
+	approveAction,
+	formatAskMessage,
+	formatDenyMessage,
+	type GuardResult,
+	guardToolCall,
+	removeFromAllowlist,
+	summarizeArtifacts,
+} from "./guard.js";
 // Heuristics
 export { HeuristicsEngine } from "./heuristics.js";
+// Installation ID
+export { getInstallationId } from "./installation-id.js";
 export type { PackageCheckerConfig, PackageCheckInput } from "./package-checker.js";
 // Package checker
 export { PackageChecker } from "./package-checker.js";
@@ -75,9 +98,16 @@ export {
 } from "./plugin-scan-cache.js";
 // Plugin scanner
 export { discoverPlugins, scanPlugin } from "./plugin-scanner.js";
+// Scan handler
+export { createScanHandler, runPluginScan, type ScanHandlerOptions } from "./scan-handler.js";
+// Session start orchestrator
+export {
+	runSessionStart,
+	type SessionStartContext,
+	type SessionStartResult,
+} from "./session-start.js";
 // Session start scan pipeline
 export {
-	formatSessionStartFindings,
 	fromCachedFinding,
 	runSessionStartScan,
 	type SessionStartScanContext,
@@ -93,9 +123,12 @@ export {
 	loadTrustedDomains,
 } from "./trusted-domains.js";
 export type {
+	AgentRuntime,
 	Allowlist,
 	AllowlistConfig,
 	AllowlistEntry,
+	AmsiCheckConfig,
+	AmsiCheckResult,
 	Artifact,
 	CacheConfig,
 	CachedEntry,
@@ -147,5 +180,5 @@ export {
 // URL utilities
 export { hashCommand, normalizeFilePath, normalizeUrl } from "./url-utils.js";
 // Version check
-export type { VersionCheckResult } from "./version-check.js";
+export type { VersionCheckContext, VersionCheckResult } from "./version-check.js";
 export { checkForUpdate, isNewerVersion } from "./version-check.js";

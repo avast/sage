@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadConfig, resolvePath } from "../config.js";
 import { makeTmpDir } from "./test-utils.js";
@@ -9,6 +10,21 @@ describe("resolvePath", () => {
 		const resolved = resolvePath("~/foo/bar");
 		expect(resolved).not.toContain("~");
 		expect(resolved).toContain(join("foo", "bar"));
+	});
+
+	it("prefers HOME env when expanding ~", () => {
+		const prevHome = process.env.HOME;
+		const fakeHome = join(homedir(), "sage-home-override-test");
+		try {
+			process.env.HOME = fakeHome;
+			expect(resolvePath("~/foo/bar")).toBe(join(fakeHome, "foo", "bar"));
+		} finally {
+			if (prevHome === undefined) {
+				delete process.env.HOME;
+			} else {
+				process.env.HOME = prevHome;
+			}
+		}
 	});
 
 	it("leaves absolute paths unchanged", () => {
@@ -78,5 +94,96 @@ describe("loadConfig", () => {
 		);
 		const config = await loadConfig(configPath);
 		expect(config.disabled_threats).toEqual(["CLT-CMD-001", "CLT-CMD-002"]);
+	});
+
+	it("anchors relative state file paths under ~/.sage", async () => {
+		const dir = await makeTmpDir();
+		const configPath = join(dir, "config.json");
+		await writeFile(
+			configPath,
+			JSON.stringify({
+				cache: { path: "cache-local.json" },
+				allowlist: { path: "allowlists/main.json" },
+				logging: { path: "logs/audit.jsonl" },
+			}),
+		);
+		const config = await loadConfig(configPath);
+		const sageDir = join(homedir(), ".sage");
+		expect(config.cache.path).toBe(resolve(sageDir, "cache-local.json"));
+		expect(config.allowlist.path).toBe(resolve(sageDir, "allowlists/main.json"));
+		expect(config.logging.path).toBe(resolve(sageDir, "logs/audit.jsonl"));
+	});
+
+	it("accepts explicit ~/.sage paths", async () => {
+		const dir = await makeTmpDir();
+		const configPath = join(dir, "config.json");
+		await writeFile(
+			configPath,
+			JSON.stringify({
+				cache: { path: "~/.sage/cache-custom.json" },
+				allowlist: { path: "~/.sage/allowlist-custom.json" },
+				logging: { path: "~/.sage/audit-custom.jsonl" },
+			}),
+		);
+		const config = await loadConfig(configPath);
+		const sageDir = join(homedir(), ".sage");
+		expect(config.cache.path).toBe(resolve(sageDir, "cache-custom.json"));
+		expect(config.allowlist.path).toBe(resolve(sageDir, "allowlist-custom.json"));
+		expect(config.logging.path).toBe(resolve(sageDir, "audit-custom.jsonl"));
+	});
+
+	it("accepts in-tree paths whose segment names start with '..'", async () => {
+		const dir = await makeTmpDir();
+		const configPath = join(dir, "config.json");
+		await writeFile(
+			configPath,
+			JSON.stringify({
+				cache: { path: "~/.sage/..data/cache.json" },
+				allowlist: { path: "~/.sage/..cfg/allowlist.json" },
+				logging: { path: "~/.sage/..logs/audit.jsonl" },
+			}),
+		);
+		const config = await loadConfig(configPath);
+		const sageDir = join(homedir(), ".sage");
+		expect(config.cache.path).toBe(resolve(sageDir, "..data/cache.json"));
+		expect(config.allowlist.path).toBe(resolve(sageDir, "..cfg/allowlist.json"));
+		expect(config.logging.path).toBe(resolve(sageDir, "..logs/audit.jsonl"));
+	});
+
+	it("falls back to defaults when state file paths escape ~/.sage", async () => {
+		const dir = await makeTmpDir();
+		const configPath = join(dir, "config.json");
+		const outsideAbsolute = resolve(homedir(), "..", "evil-allowlist.json");
+		await writeFile(
+			configPath,
+			JSON.stringify({
+				cache: { path: "~/../../../tmp/evil-cache.json" },
+				allowlist: { path: outsideAbsolute },
+				logging: { path: "../evil-audit.jsonl" },
+			}),
+		);
+		const config = await loadConfig(configPath);
+		const sageDir = join(homedir(), ".sage");
+		expect(config.cache.path).toBe(resolve(sageDir, "cache.json"));
+		expect(config.allowlist.path).toBe(resolve(sageDir, "allowlist.json"));
+		expect(config.logging.path).toBe(resolve(sageDir, "audit.jsonl"));
+	});
+
+	it("falls back when state file paths resolve to ~/.sage directory", async () => {
+		const dir = await makeTmpDir();
+		const configPath = join(dir, "config.json");
+		await writeFile(
+			configPath,
+			JSON.stringify({
+				cache: { path: "." },
+				allowlist: { path: "   " },
+				logging: { path: "~/.sage/" },
+			}),
+		);
+		const config = await loadConfig(configPath);
+		const sageDir = join(homedir(), ".sage");
+		expect(config.cache.path).toBe(resolve(sageDir, "cache.json"));
+		expect(config.allowlist.path).toBe(resolve(sageDir, "allowlist.json"));
+		expect(config.logging.path).toBe(resolve(sageDir, "audit.jsonl"));
 	});
 });

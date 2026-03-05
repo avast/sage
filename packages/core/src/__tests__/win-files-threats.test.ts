@@ -163,4 +163,36 @@ describe("Windows file path threats", () => {
 		);
 		expect(ids.filter((id) => id === "CLT-WIN-FILE-010")).toEqual([]);
 	});
+
+	// --- Additional FP coverage ---
+
+	it("does not match System32\\config\\SOFTWARE (001 FP)", () => {
+		const ids = matchFilePath(engine, "C:\\Windows\\System32\\config\\SOFTWARE");
+		expect(ids).not.toContain("CLT-WIN-FILE-001");
+	});
+
+	it("does not match drivers\\etc\\services (003 FP)", () => {
+		const ids = matchFilePath(engine, "C:\\Windows\\System32\\drivers\\etc\\services");
+		expect(ids).not.toContain("CLT-WIN-FILE-003");
+	});
+
+	it("does not match exe in System32 (005 FP — only scripts)", () => {
+		const ids = matchFilePath(engine, "C:\\Windows\\System32\\notepad.exe");
+		expect(ids).not.toContain("CLT-WIN-FILE-005");
+	});
+
+	it("does not match drivers\\normal.dll (006 FP — only .sys)", () => {
+		const ids = matchFilePath(engine, "C:\\Windows\\System32\\drivers\\normal.dll");
+		expect(ids).not.toContain("CLT-WIN-FILE-006");
+	});
+
+	it("does not match .ssh\\known_hosts (008 FP)", () => {
+		const ids = matchFilePath(engine, "C:\\Users\\user\\.ssh\\known_hosts");
+		expect(ids).not.toContain("CLT-WIN-FILE-008");
+	});
+
+	it("does not match .aws\\config (009 FP — only credentials)", () => {
+		const ids = matchFilePath(engine, "C:\\Users\\user\\.aws\\config");
+		expect(ids).not.toContain("CLT-WIN-FILE-009");
+	});
 });

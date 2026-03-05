@@ -200,6 +200,10 @@ describe("OpenClaw integration: Sage plugin pipeline", { timeout: 30_000 }, () =
 				params: { url: eicarUrl },
 			});
 		} catch {
+			result = undefined;
+		}
+
+		if (result === undefined) {
 			ctx.skip("URL check API unreachable");
 		}
 

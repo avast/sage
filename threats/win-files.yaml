@@ -1,7 +1,7 @@
 # Windows sensitive file path threat patterns for Sage
 # Author: Gen Digital Inc.
 # License: DRL-1.1 (see threats/LICENSE)
-# Detects Write/Edit operations targeting Windows security-sensitive files
+# Detects Read/Write/Edit/Delete operations targeting Windows security-sensitive files
 
 # SAM/SECURITY/SYSTEM hive
 - id: "CLT-WIN-FILE-001"
@@ -11,7 +11,7 @@
   action: block
   pattern: "(\\\\|/)Windows(\\\\|/)System32(\\\\|/)config(\\\\|/)(SAM|SECURITY|SYSTEM)"
   match_on: file_path
-  title: "Write to SAM/SECURITY/SYSTEM registry hive"
+  title: "Access SAM/SECURITY/SYSTEM registry hive"
   expires_at: null
   revoked: false
 
@@ -23,7 +23,7 @@
   action: block
   pattern: "[Nn][Tt][Dd][Ss]\\.[Dd][Ii][Tt]"
   match_on: file_path
-  title: "Write to NTDS.dit (Active Directory database)"
+  title: "Access NTDS.dit (Active Directory database)"
   expires_at: null
   revoked: false
 
@@ -35,7 +35,7 @@
   action: require_approval
   pattern: "(\\\\|/)Windows(\\\\|/)System32(\\\\|/)drivers(\\\\|/)etc(\\\\|/)hosts"
   match_on: file_path
-  title: "Write to Windows hosts file"
+  title: "Access Windows hosts file"
   expires_at: null
   revoked: false
 
@@ -47,7 +47,7 @@
   action: require_approval
   pattern: "(\\\\|/)(Startup|Start Menu(\\\\|/)Programs(\\\\|/)Startup)(\\\\|/)"
   match_on: file_path
-  title: "Write to Windows Startup folder"
+  title: "Access Windows Startup folder"
   expires_at: null
   revoked: false
 
@@ -59,7 +59,7 @@
   action: block
   pattern: "(\\\\|/)Windows(\\\\|/)(System32|SysWOW64)(\\\\|/).*\\.(bat|cmd|ps1|vbs|wsf)$"
   match_on: file_path
-  title: "Write executable script to System32/SysWOW64"
+  title: "Access executable script in System32/SysWOW64"
   expires_at: null
   revoked: false
 
@@ -71,7 +71,7 @@
   action: block
   pattern: "(\\\\|/)Windows(\\\\|/)System32(\\\\|/)drivers(\\\\|/).*\\.sys$"
   match_on: file_path
-  title: "Write driver file to System32/drivers"
+  title: "Access driver file in System32/drivers"
   expires_at: null
   revoked: false
 
@@ -83,7 +83,7 @@
   action: require_approval
   pattern: "(Windows|WINDOWS)[/\\\\]System32[/\\\\]Tasks[/\\\\]"
   match_on: file_path
-  title: "Write to Windows Task Scheduler directory"
+  title: "Access Windows Task Scheduler directory"
   expires_at: null
   revoked: false
 
@@ -95,7 +95,7 @@
   action: require_approval
   pattern: "\\.ssh[\\\\](id_rsa|id_ed25519|id_ecdsa|id_dsa|config|authorized_keys)$"
   match_on: file_path
-  title: "Write to SSH key or config file (Windows path)"
+  title: "Access SSH key or config file (Windows path)"
   expires_at: null
   revoked: false
 
@@ -107,7 +107,7 @@
   action: require_approval
   pattern: "\\.aws[\\\\]credentials$"
   match_on: file_path
-  title: "Write to AWS credentials file (Windows path)"
+  title: "Access AWS credentials file (Windows path)"
   expires_at: null
   revoked: false
 
@@ -119,6 +119,6 @@
   action: block
   pattern: "(Google[/\\\\]Chrome|Mozilla[/\\\\]Firefox|Microsoft[/\\\\]Edge)[/\\\\].*[/\\\\](Login Data|logins\\.json|Cookies)$"
   match_on: file_path
-  title: "Write to browser credential store"
+  title: "Access browser credential store"
   expires_at: null
   revoked: false

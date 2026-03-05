@@ -1,0 +1,40 @@
+# macOS supply chain threat patterns for Sage
+# Author: Gen Digital Inc.
+# License: DRL-1.1 (see threats/LICENSE)
+
+# brew install without version pin
+- id: "CLT-MAC-SUPPLY-001"
+  category: supply_chain
+  severity: medium
+  confidence: 0.65
+  action: require_approval
+  pattern: "\\bbrew\\s+install\\b(?!.*@\\d)"
+  match_on: command
+  title: "Homebrew install without version pin"
+  expires_at: null
+  revoked: false
+
+# installer -pkg from remote URL
+- id: "CLT-MAC-SUPPLY-002"
+  category: supply_chain
+  severity: high
+  confidence: 0.85
+  action: block
+  pattern: "\\binstaller\\b.*-pkg.*https?://"
+  case_insensitive: true
+  match_on: command
+  title: "Remote package install via installer -pkg (unsigned)"
+  expires_at: null
+  revoked: false
+
+# brew install --cask from non-default tap
+- id: "CLT-MAC-SUPPLY-003"
+  category: supply_chain
+  severity: medium
+  confidence: 0.65
+  action: require_approval
+  pattern: "\\bbrew\\s+(install|reinstall)\\s+--cask\\b"
+  match_on: command
+  title: "Homebrew cask install (binary application)"
+  expires_at: null
+  revoked: false

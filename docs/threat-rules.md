@@ -18,6 +18,7 @@ Rules ship in the `threats/` directory at the repository root:
 | `self-defense.yaml` | Attempts to disable or bypass Sage |
 | `mitre.yaml` | MITRE ATT&CK technique mappings |
 | `win-*.yaml` | Windows-specific variants of the above |
+| `mac-*.yaml` | macOS-specific variants (osascript, Keychain, LOLBins, defense evasion) |
 
 ## Rule Schema
 
@@ -48,6 +49,7 @@ Rules ship in the `threats/` directory at the repository root:
 | `title` | string | Human-readable description |
 | `expires_at` | string or null | ISO 8601 expiration date, or `null` for permanent |
 | `revoked` | boolean | Set `true` to disable a rule without removing it |
+| `case_insensitive` | boolean | *(optional)* Match pattern case-insensitively (default: `false`) |
 
 `match_on` accepts a single value or a list. For example, credential patterns may match on both `command` and `content`:
 
@@ -57,16 +59,28 @@ Rules ship in the `threats/` directory at the repository root:
 
 ## What Gets Checked
 
-**Bash commands:**
-- Pipe-to-shell attacks, reverse shell patterns, destructive operations
+**Bash commands (cross-platform):**
+- Pipe-to-shell attacks, reverse shell patterns (incl. Python/Ruby/zsh socket shells), destructive operations
 - Download-and-execute chains, privilege escalation
-- Data exfiltration, persistence mechanisms, credential exposure
-- Obfuscation (base64-decode-exec, hex escapes, eval-decode)
+- Data exfiltration, persistence mechanisms (cron, systemd, shell RC, `at` jobs), credential exposure
+- Obfuscation (base64-decode-exec, hex escapes, eval-decode, Python encoded payloads)
 - Python one-liners with dangerous imports
+
+**Bash commands (macOS-specific):**
+- osascript RCE (AppleScript `do shell script`, JXA execution, piped/remote scripts)
+- macOS LOLBins (`dscl`, `networksetup`, `systemsetup`, `kickstart`, `installer`, `hdiutil`, `pkgutil`)
+- Keychain attacks (`security find-generic-password`, `dump-keychain`, `unlock-keychain`, `delete-keychain`, direct SQLite access)
+- Defense evasion (Gatekeeper disable via `spctl`, SIP disable via `csrutil`, quarantine removal, firewall disable via `pfctl`, TCC reset via `tccutil`, security daemon unloading)
+- Privilege escalation (`dscl -passwd`, `dseditgroup` admin group add)
+- Destructive operations (`diskutil eraseDisk`, `tmutil delete` — ransomware indicator)
+- Persistence (LaunchAgents via `osascript`/`launchctl`, login items, SecurityAgentPlugins, emond rules, `DYLD_INSERT_LIBRARIES`, Folder Actions, periodic scripts)
+- Obfuscation (base64-to-osascript, DYLD injection, binary plist conversion via `plutil`, Swift inline execution)
+- Supply chain (Homebrew install without version pin, remote `.pkg` install, cask installs)
 
 **File writes/edits:**
 - System authentication files, SSH keys and config, shell RC files
-- macOS LaunchAgents, cron directories, systemd unit files
+- macOS LaunchAgents/LaunchDaemons, TCC.db, authorization DB, kernel extensions, SecurityAgentPlugins, emond rules, Safari credential stores, Managed Preferences, Keychain files
+- Cron directories, systemd unit files
 - Credential files (`.env`, `.aws/credentials`, `.netrc`)
 - Git hooks, URLs and credentials embedded in content
 

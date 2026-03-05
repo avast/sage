@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import { execFile } from "node:child_process";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -39,7 +41,8 @@ describe("Cursor hook integration", () => {
 		});
 
 		expect(code).toBe(0);
-		expect(parseResponse(stdout)).toEqual({ decision: "allow" });
+		const response = parseResponse(stdout);
+		expect(response.decision).toBe("allow");
 	});
 
 	it("parses UTF-16LE stdin payloads (Windows hook launcher)", async () => {
@@ -79,6 +82,22 @@ describe("Cursor hook integration", () => {
 		expect(typeof response.reason).toBe("string");
 	});
 
+	it("denies Edit payloads that use path + streamContent fields", async () => {
+		const { stdout, code } = await runHook("cursor", {
+			hook_event_name: "preToolUse",
+			tool_name: "Edit",
+			tool_input: {
+				path: "/tmp/edit-streamcontent.txt",
+				streamContent: "eval $(base64 --decode <<< YWJj)",
+			},
+		});
+
+		expect(code).toBe(0);
+		const response = parseResponse(stdout);
+		expect(response.decision).toBe("deny");
+		expect(typeof response.reason).toBe("string");
+	});
+
 	it("denies suspicious shell command", async () => {
 		const { stdout, code } = await runHook("cursor", {
 			hook_event_name: "beforeShellExecution",
@@ -86,9 +105,9 @@ describe("Cursor hook integration", () => {
 			cwd: "/tmp",
 		});
 
-		expect(code).toBe(0);
 		const response = parseResponse(stdout);
 		expect(response.permission).toMatch(/^(deny|ask)$/);
+		expect(code).toBe(0);
 	});
 
 	it("denies sensitive file read", async () => {
@@ -149,12 +168,80 @@ describe("VS Code hook integration", () => {
 			},
 		});
 
-		expect(code).toBe(0);
 		const response = parseResponse(stdout);
 		const hookSpecificOutput = response.hookSpecificOutput as Record<string, unknown>;
 		expect(hookSpecificOutput.hookEventName).toBe("PreToolUse");
 		expect(hookSpecificOutput.permissionDecision).toMatch(/^(deny|ask)$/);
 		expect(typeof hookSpecificOutput.permissionDecisionReason).toBe("string");
+		expect(code).toBe(0);
+	});
+
+	it("denies read of sensitive file", async () => {
+		const { stdout, code } = await runHook("vscode", {
+			tool_name: "Read",
+			tool_input: { file_path: "/etc/shadow" },
+		});
+
+		const response = parseResponse(stdout);
+		const hookSpecificOutput = response.hookSpecificOutput as Record<string, unknown>;
+		expect(hookSpecificOutput.permissionDecision).toMatch(/^(deny|ask)$/);
+		expect(code).toBe(0);
+	});
+
+	it("allows read of benign file", async () => {
+		const { stdout, code } = await runHook("vscode", {
+			tool_name: "Read",
+			tool_input: { file_path: "/tmp/notes.txt" },
+		});
+
+		expect(code).toBe(0);
+		expect(parseResponse(stdout)).toEqual({});
+	});
+
+	it("denies delete of sensitive file", async () => {
+		const { stdout, code } = await runHook("vscode", {
+			tool_name: "Delete",
+			tool_input: { file_path: "/home/user/.ssh/authorized_keys" },
+		});
+
+		const response = parseResponse(stdout);
+		const hookSpecificOutput = response.hookSpecificOutput as Record<string, unknown>;
+		expect(hookSpecificOutput.permissionDecision).toMatch(/^(deny|ask)$/);
+		expect(code).toBe(0);
+	});
+
+	it("allows delete of benign file", async () => {
+		const { stdout, code } = await runHook("vscode", {
+			tool_name: "Delete",
+			tool_input: { file_path: "/tmp/scratch.txt" },
+		});
+
+		expect(code).toBe(0);
+		expect(parseResponse(stdout)).toEqual({});
+	});
+
+	it("denies read with variant key name 'filePath'", async () => {
+		const { stdout, code } = await runHook("vscode", {
+			tool_name: "Read",
+			tool_input: { filePath: "/etc/shadow" },
+		});
+
+		const response = parseResponse(stdout);
+		const hookSpecificOutput = response.hookSpecificOutput as Record<string, unknown>;
+		expect(hookSpecificOutput.permissionDecision).toMatch(/^(deny|ask)$/);
+		expect(code).toBe(0);
+	});
+
+	it("denies delete with variant key name 'path'", async () => {
+		const { stdout, code } = await runHook("vscode", {
+			tool_name: "Delete",
+			tool_input: { path: "/home/user/.ssh/authorized_keys" },
+		});
+
+		const response = parseResponse(stdout);
+		const hookSpecificOutput = response.hookSpecificOutput as Record<string, unknown>;
+		expect(hookSpecificOutput.permissionDecision).toMatch(/^(deny|ask)$/);
+		expect(code).toBe(0);
 	});
 
 	it("fails open on invalid json", async () => {

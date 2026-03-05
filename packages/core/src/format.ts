@@ -4,11 +4,12 @@
  * Follows Gen AV product alert patterns (shield icon, headline, key-value details).
  */
 
+import type { SessionStartResult } from "./session-start.js";
 import type { PluginScanResult } from "./types.js";
 import type { VersionCheckResult } from "./version-check.js";
 
-const PAD = 12;
-const SEPARATOR_WIDTH = 48;
+export const PAD = 12;
+export const SEPARATOR_WIDTH = 48;
 
 export function severityEmoji(severity: string): string {
 	const s = severity.toLowerCase();
@@ -86,4 +87,11 @@ export function formatThreatBanner(
 	}
 
 	return lines.join("\n");
+}
+
+export function formatSessionStartMessage(version: string, result: SessionStartResult): string {
+	if (result.scanResults.length > 0) {
+		return formatThreatBanner(version, result.scanResults, result.versionCheck);
+	}
+	return formatStartupClean(version, result.versionCheck);
 }

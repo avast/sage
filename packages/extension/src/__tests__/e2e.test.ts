@@ -12,7 +12,15 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	cpSync,
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -21,6 +29,7 @@ import { beforeAll, describe, it } from "vitest";
 
 type HostName = "cursor" | "vscode";
 type CaseStatus = "pass" | "fail";
+type JsonRecord = Record<string, unknown>;
 
 interface E2ECase {
 	id: string;
@@ -38,6 +47,11 @@ interface HostMetadata {
 
 interface HostResolution {
 	executablePath?: string;
+	reason?: string;
+}
+
+interface AgentResolution {
+	command?: string;
 	reason?: string;
 }
 
@@ -59,6 +73,12 @@ const EXTENSION_ROOT = path.resolve(__dirname, "..", "..");
 const WORKSPACE_FOLDER = path.resolve(EXTENSION_ROOT, "test-workspace");
 const EXTENSION_TESTS_PATH = path.resolve(__dirname, "e2e-suite", "index.js");
 const HOOK_RUNNER_PATH = path.resolve(EXTENSION_ROOT, "dist", "sage-hook.cjs");
+const HEADLESS_WORKSPACE = path.resolve(
+	EXTENSION_ROOT,
+	".e2e-artifacts",
+	"cursor-headless-agent-workspace",
+);
+const HEADLESS_AGENT_MODEL = process.env.SAGE_HEADLESS_AGENT_MODEL?.trim() || "claude-4.5-sonnet";
 const E2E_VERBOSE = resolveE2EVerbose();
 const E2E_CASES: readonly E2ECase[] = [
 	{ id: "configure-workspace-scope", title: "configure workspace scope" },
@@ -67,6 +87,10 @@ const E2E_CASES: readonly E2ECase[] = [
 	{ id: "enable-protection-writes-hooks", title: "enable protection writes managed hooks" },
 	{ id: "hook-health-command", title: "hook health command runs without error" },
 	{ id: "dangerous-write-blocked", title: "managed hook blocks dangerous write" },
+	{
+		id: "hook-response-shape-consistent",
+		title: "hook responses have consistent shape across event types",
+	},
 	{ id: "disable-protection-removes-hooks", title: "disable protection removes managed hooks" },
 ];
 
@@ -91,6 +115,10 @@ const HOST_METADATA: Record<HostName, HostMetadata> = {
 
 const requestedHost = resolveRequestedHost();
 const hostsToRun: HostName[] = requestedHost ? [requestedHost] : ["cursor", "vscode"];
+const cursorAgentResolution = resolveCursorHeadlessE2E();
+if (!cursorAgentResolution.command) {
+	console.warn(`Cursor headless agent E2E skipped: ${cursorAgentResolution.reason}`);
+}
 
 for (const host of hostsToRun) {
 	const metadata = HOST_METADATA[host];
@@ -137,6 +165,87 @@ for (const host of hostsToRun) {
 		}
 	});
 }
+
+const describeCursorHeadless = cursorAgentResolution.command ? describe : describe.skip;
+
+describeCursorHeadless("E2E: Cursor headless agent + Sage hooks", { timeout: 240_000 }, () => {
+	it("denies write tool call and keeps file absent", () => {
+		const agentCommand = cursorAgentResolution.command;
+		if (!agentCommand) {
+			return;
+		}
+
+		const workspace = createFreshHeadlessWorkspace();
+		const fixture = createHeadlessSageFixture(workspace);
+		const blockedPath = fixture.blockedPath;
+		const streamPath = path.join(workspace, "headless-agent-stream.log");
+		const auditPath = path.join(workspace, ".sage", "audit.jsonl");
+
+		rmSync(blockedPath, { force: true });
+		writeCursorProjectHooks(workspace, fixture);
+
+		const prompt = [
+			`This is a safe automated test in a temporary workspace.`,
+			`Use the Write tool exactly once.`,
+			`Create the file at path "${blockedPath}".`,
+			`Write the exact content: "sage-cursor-e2e-write-attempt".`,
+			`Do not use shell commands.`,
+		].join(" ");
+
+		const run = runCommandWithWindowsFallback(
+			agentCommand,
+			["-p", "--force", "--model", HEADLESS_AGENT_MODEL, "--output-format", "stream-json", prompt],
+			{
+				cwd: workspace,
+				timeout: 180_000,
+				env: {
+					...process.env,
+					HOME: workspace,
+					USERPROFILE: workspace,
+				},
+			},
+		);
+
+		const stdout = run.stdout ?? "";
+		const stderr = run.stderr ?? "";
+		const stream = `${stdout}\n${stderr}`;
+		try {
+			writeFileSync(streamPath, stream, "utf8");
+		} catch {
+			// Best-effort debug artifact.
+		}
+
+		if (run.error) {
+			throw new Error(
+				`Headless agent execution failed: ${formatError(run.error)}\nworkspace: ${workspace}\nstream log: ${streamPath}`,
+			);
+		}
+
+		if (run.status !== 0) {
+			throw new Error(
+				`Headless agent exited with code ${String(run.status)}\nworkspace: ${workspace}\nstream log: ${streamPath}`,
+			);
+		}
+
+		if (!hasWriteOrEditToolCall(stream)) {
+			throw new Error(
+				`Headless agent did not attempt a Write/Edit tool call.\nworkspace: ${workspace}\nstream log: ${streamPath}`,
+			);
+		}
+
+		if (!hasSageDeniedTargetInAudit(auditPath, blockedPath)) {
+			throw new Error(
+				`Sage deny verdict for headless target was not found in audit log.\nworkspace: ${workspace}\nstream log: ${streamPath}\naudit log: ${auditPath}`,
+			);
+		}
+
+		if (existsSync(blockedPath)) {
+			throw new Error(
+				`Denied write target exists after run: ${blockedPath}\nworkspace: ${workspace}\nstream log: ${streamPath}\naudit log: ${auditPath}`,
+			);
+		}
+	});
+});
 
 async function runHostE2E(host: HostName, executablePath: string): Promise<HostRunSummary> {
 	const metadata = HOST_METADATA[host];
@@ -348,6 +457,239 @@ function parseHostName(value: string | undefined): HostName | undefined {
 		return normalized;
 	}
 	return undefined;
+}
+
+function resolveCursorHeadlessE2E(): AgentResolution {
+	if (requestedHost === "vscode") {
+		return { reason: "vscode-only run selected" };
+	}
+
+	const envCandidates = readEnvCandidates(["SAGE_AGENT_PATH"]);
+	const candidates = dedupe([...envCandidates, "agent"]);
+	for (const candidate of candidates) {
+		if (canExecute(candidate)) {
+			const auth = checkAgentAuth(candidate);
+			if (auth.ok) {
+				return { command: candidate };
+			}
+			return { reason: auth.reason };
+		}
+	}
+
+	return {
+		reason:
+			envCandidates.length > 0
+				? `configured agent command is not runnable: ${envCandidates.join(", ")}`
+				: "agent CLI not found in PATH (install Cursor headless CLI or set SAGE_AGENT_PATH)",
+	};
+}
+
+function checkAgentAuth(agentCommand: string): { ok: boolean; reason?: string } {
+	const status = runCommandWithWindowsFallback(agentCommand, ["status"], {
+		timeout: 20_000,
+	});
+	if (status.error) {
+		return { ok: false, reason: `failed to check agent auth: ${String(status.error)}` };
+	}
+
+	const output = `${status.stdout ?? ""}\n${status.stderr ?? ""}`.toLowerCase();
+	if (
+		output.includes("not authenticated") ||
+		output.includes("login required") ||
+		output.includes("agent login")
+	) {
+		return {
+			ok: false,
+			reason: "agent authentication missing (run `agent login` or set CURSOR_API_KEY)",
+		};
+	}
+
+	if (status.status !== 0) {
+		return {
+			ok: false,
+			reason: `agent status failed with exit code ${String(status.status)}`,
+		};
+	}
+
+	return { ok: true };
+}
+
+function runCommandWithWindowsFallback(
+	command: string,
+	args: string[],
+	options: { cwd?: string; timeout: number; env?: NodeJS.ProcessEnv },
+): ReturnType<typeof spawnSync> {
+	const direct = spawnSync(command, args, {
+		cwd: options.cwd,
+		encoding: "utf8",
+		env: options.env,
+		timeout: options.timeout,
+		windowsHide: true,
+	});
+
+	if (!direct.error || process.platform !== "win32") {
+		return direct;
+	}
+
+	const cmdInvocation = buildCmdInvocation(command, args);
+	return spawnSync("cmd.exe", ["/d", "/s", "/c", cmdInvocation], {
+		cwd: options.cwd,
+		encoding: "utf8",
+		env: options.env,
+		timeout: options.timeout,
+		windowsHide: true,
+	});
+}
+
+function buildCmdInvocation(command: string, args: string[]): string {
+	const cmd = quoteForCmd(command);
+	const argv = args.map((arg) => quoteForCmd(arg)).join(" ");
+	return argv ? `${cmd} ${argv}` : cmd;
+}
+
+function quoteForCmd(value: string): string {
+	if (!value.includes(" ") && !value.includes('"') && !value.includes("\t")) {
+		return value;
+	}
+	return `"${value.replace(/"/g, '""')}"`;
+}
+
+function createHeadlessSageFixture(workspace: string): {
+	blockedPath: string;
+	runnerPath: string;
+} {
+	const fixtureRoot = path.join(workspace, ".sage-headless-fixture");
+	const resourcesDir = path.join(fixtureRoot, "resources");
+	const threatsDir = path.join(resourcesDir, "threats");
+	const blockedPath = path.join(workspace, "tmp", "sage-headless-deny-target.txt");
+	const runnerPath = path.join(fixtureRoot, "dist", "sage-hook.cjs");
+
+	mkdirSync(path.dirname(runnerPath), { recursive: true });
+	cpSync(path.join(EXTENSION_ROOT, "resources"), resourcesDir, { recursive: true, force: true });
+	cpSync(HOOK_RUNNER_PATH, runnerPath, { force: true });
+	const runnerSourceMap = `${HOOK_RUNNER_PATH}.map`;
+	if (existsSync(runnerSourceMap)) {
+		cpSync(runnerSourceMap, `${runnerPath}.map`, { force: true });
+	}
+
+	const threatYaml = `- id: "SAGE-HEADLESS-E2E-001"
+  category: files
+  severity: critical
+  confidence: 1.0
+  action: block
+  pattern: "sage-headless-deny-target\\\\.txt$"
+  match_on: file_path
+  title: "Block headless E2E deny target"
+  expires_at: null
+  revoked: false
+`;
+	writeFileSync(path.join(threatsDir, "headless-e2e.yaml"), threatYaml, "utf8");
+
+	return { blockedPath, runnerPath };
+}
+
+function writeCursorProjectHooks(workspace: string, fixture: { runnerPath: string }): void {
+	const hooksDir = path.join(workspace, ".cursor");
+	mkdirSync(hooksDir, { recursive: true });
+
+	const hookCommand = createHookCommand(fixture);
+	const hooks = {
+		version: 1,
+		hooks: {
+			preToolUse: [
+				{
+					matcher: "Write|Edit|Delete",
+					command: hookCommand,
+					timeout: 30,
+				},
+			],
+		},
+	};
+
+	writeFileSync(path.join(hooksDir, "hooks.json"), `${JSON.stringify(hooks, null, 2)}\n`, "utf8");
+}
+
+function createHookCommand(fixture: { runnerPath: string }): string {
+	return `node "${fixture.runnerPath}" cursor`;
+}
+
+function createFreshHeadlessWorkspace(): string {
+	rmSync(HEADLESS_WORKSPACE, { recursive: true, force: true });
+	mkdirSync(HEADLESS_WORKSPACE, { recursive: true });
+	return HEADLESS_WORKSPACE;
+}
+
+function hasWriteOrEditToolCall(output: string): boolean {
+	if (/writeToolCall|editToolCall/.test(output)) {
+		return true;
+	}
+
+	for (const line of output.split(/\r?\n/)) {
+		const trimmed = line.trim();
+		if (!trimmed) {
+			continue;
+		}
+		try {
+			const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+			if (parsed.type !== "tool_call") {
+				continue;
+			}
+			const toolCall = parsed.tool_call as Record<string, unknown> | undefined;
+			if (toolCall && ("writeToolCall" in toolCall || "editToolCall" in toolCall)) {
+				return true;
+			}
+		} catch {
+			// Ignore non-JSON stream lines.
+		}
+	}
+	return false;
+}
+
+function readTextIfExists(filePath: string): string {
+	if (!existsSync(filePath)) {
+		return "(file missing)";
+	}
+	try {
+		return readFileSync(filePath, "utf8");
+	} catch (error) {
+		return `(failed to read file: ${formatError(error)})`;
+	}
+}
+
+function hasSageDeniedTargetInAudit(auditPath: string, blockedPath: string): boolean {
+	if (!existsSync(auditPath)) {
+		return false;
+	}
+
+	const targetName = path.basename(blockedPath).toLowerCase();
+	const lines = readTextIfExists(auditPath).split(/\r?\n/);
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (!trimmed) {
+			continue;
+		}
+		try {
+			const entry = JSON.parse(trimmed) as JsonRecord;
+			const type = typeof entry.type === "string" ? entry.type : undefined;
+			const verdict = typeof entry.verdict === "string" ? entry.verdict : undefined;
+			const toolName = typeof entry.tool_name === "string" ? entry.tool_name : undefined;
+			const summary =
+				typeof entry.tool_input_summary === "string"
+					? entry.tool_input_summary.toLowerCase()
+					: undefined;
+			if (
+				type === "runtime_verdict" &&
+				verdict === "deny" &&
+				(toolName === "Write" || toolName === "Edit") &&
+				summary?.includes(targetName)
+			) {
+				return true;
+			}
+		} catch {
+			// Ignore malformed lines.
+		}
+	}
+	return false;
 }
 
 function resolveHostExecutable(host: HostName): HostResolution {
@@ -633,6 +975,7 @@ function buildVsCodeManifest(baseManifest: Record<string, unknown>): Record<stri
 					},
 					"sage.hookRunnerPath": {
 						type: "string",
+						scope: "application",
 						default: "",
 						description: "Optional absolute path to a sage-hook runner script.",
 					},

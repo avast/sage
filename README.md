@@ -72,6 +72,7 @@ See [Getting Started](docs/getting-started.md) for detailed instructions.
 | [Threat Rules](docs/threat-rules.md)             | YAML rule format and what gets checked         |
 | [Package Protection](docs/package-protection.md) | npm/PyPI supply-chain checks                   |
 | [Plugin Scanning](docs/plugin-scanning.md)       | Session-start plugin scanning                  |
+| [AMSI Scanning](docs/amsi-scanning.md)           | Windows antimalware scanning via AMSI          |
 | [Architecture](docs/architecture.md)             | Monorepo structure, packages, design decisions |
 | [Development](docs/development.md)               | Building, testing, tooling, conventions        |
 | [FAQ](docs/faq.md)                               | Common questions                               |
