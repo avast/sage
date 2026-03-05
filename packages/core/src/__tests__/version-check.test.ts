@@ -128,7 +128,7 @@ describe("checkForUpdate", () => {
 		await checkForUpdate("0.4.0");
 
 		const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-		expect(fetchCall[0]).toBe(resolveEndpoint("/version-check"));
+		expect(fetchCall[0]).toBe(resolveEndpoint("/v1/version-check"));
 		const options = fetchCall[1] as RequestInit;
 		expect(options.method).toBe("POST");
 		const body = JSON.parse(options.body as string);

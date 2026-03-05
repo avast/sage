@@ -1,7 +1,7 @@
 {
   "name": "@sage/opencode",
   "license": "Apache-2.0",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "type": "module",
   "description": "Safety for Agents - ADR layer for OpenCode",
   "main": "./dist/index.js",
@@ -24,9 +24,11 @@
     "sync:assets": "node scripts/sync-assets.mjs",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@sage/core": "workspace:*"
+  },
   "devDependencies": {
     "@opencode-ai/plugin": "^1.2.10",
-    "@sage/core": "workspace:*",
     "@types/node": "^22.0.0",
     "typescript": "^5.9.0",
     "vitest": "^4.0.0"

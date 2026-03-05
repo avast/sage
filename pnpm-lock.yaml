@@ -102,10 +102,11 @@ importers:
         version: 4.0.18(@types/node@22.19.11)(yaml@2.8.2)
 
   packages/openclaw:
-    devDependencies:
+    dependencies:
       '@sage/core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
@@ -124,13 +125,14 @@ importers:
         version: 2.15.1
 
   packages/opencode:
+    dependencies:
+      '@sage/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@opencode-ai/plugin':
         specifier: ^1.2.10
         version: 1.2.15
-      '@sage/core':
-        specifier: workspace:*
-        version: link:../core
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11

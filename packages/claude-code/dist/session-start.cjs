@@ -16091,7 +16091,7 @@ ${AMSI_CSHARP_TYPE}
 `;
 
 // ../core/dist/version.js
-var VERSION = true ? "0.5.1" : "dev";
+var VERSION = true ? "0.5.2" : "dev";
 
 // ../core/dist/clients/file-check.js
 var DEFAULT_TIMEOUT = 5;
@@ -17128,7 +17128,7 @@ async function checkForUpdate(currentVersion, logger2 = nullLogger, timeoutMs = 
     return null;
   }
   try {
-    const response = await fetch(resolveEndpoint("/version-check"), {
+    const response = await fetch(resolveEndpoint("/v1/version-check"), {
       method: "POST",
       signal: AbortSignal.timeout(timeoutMs),
       headers: {

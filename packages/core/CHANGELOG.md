@@ -1,5 +1,11 @@
 # @sage/core
 
+## 0.5.2
+
+### Patch Changes
+
+- Fix the version check URL and the changeset configuration for OpenClaw and OpenCode.
+
 ## 0.5.1
 
 ### Patch Changes

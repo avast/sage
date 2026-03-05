@@ -64,7 +64,7 @@ export async function checkForUpdate(
 	}
 
 	try {
-		const response = await fetch(resolveEndpoint("/version-check"), {
+		const response = await fetch(resolveEndpoint("/v1/version-check"), {
 			method: "POST",
 			signal: AbortSignal.timeout(timeoutMs),
 			headers: {

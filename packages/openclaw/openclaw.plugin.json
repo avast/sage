@@ -1,7 +1,7 @@
 {
   "id": "sage-openclaw",
   "name": "Sage",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "description": "Safety for Agents — ADR layer that guards commands, files, and web requests",
   "skills": [
     "resources/skills/security-awareness"

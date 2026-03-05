@@ -1,5 +1,12 @@
 # sage-cursor
 
+## 0.5.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @sage/core@0.5.2
+
 ## 0.5.1
 
 ### Patch Changes

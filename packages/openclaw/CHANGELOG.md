@@ -1,5 +1,12 @@
 # @gendigital/sage-openclaw
 
+## 0.5.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @sage/core@0.5.2
+
 ## 0.5.0
 
 ### Minor Changes

@@ -1,7 +1,7 @@
 {
   "name": "@gendigital/sage-openclaw",
   "license": "Apache-2.0",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "type": "module",
   "description": "Safety for Agents — ADR layer for OpenClaw",
   "main": "./dist/index.cjs",
@@ -22,8 +22,10 @@
   "optionalDependencies": {
     "koffi": "^2.9.0"
   },
+  "dependencies": {
+    "@sage/core": "workspace:*"
+  },
   "devDependencies": {
-    "@sage/core": "workspace:*",
     "@types/node": "^22.0.0",
     "esbuild": "^0.25.0",
     "typescript": "^5.9.0",
