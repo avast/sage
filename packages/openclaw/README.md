@@ -21,12 +21,14 @@ openclaw plugins install @gendigital/sage-openclaw
 
 ## Configuration
 
-Sage works out of the box with no configuration. Optional config file at `~/.sage/config.yaml`:
+Sage works out of the box with no configuration. Optional config file at `~/.sage/config.json`:
 
-```yaml
-sensitivity: balanced   # paranoid | balanced | relaxed
-url_check: true
-file_check: true
+```json
+{
+  "sensitivity": "balanced",
+  "url_check": { "enabled": true },
+  "file_check": { "enabled": true }
+}
 ```
 
 ## Links

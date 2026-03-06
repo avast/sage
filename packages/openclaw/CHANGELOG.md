@@ -1,5 +1,11 @@
 # @gendigital/sage-openclaw
 
+## 0.5.3
+
+### Patch Changes
+
+- Fix the configuration instructions inside README. Add an ask->deny promotion integration test.
+
 ## 0.5.2
 
 ### Patch Changes

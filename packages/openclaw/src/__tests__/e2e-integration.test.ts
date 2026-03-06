@@ -9,9 +9,11 @@
  * Included in `pnpm test` (standard test suite).
  */
 
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
 
@@ -186,6 +188,40 @@ describe("OpenClaw integration: Sage plugin pipeline", { timeout: 30_000 }, () =
 		await expectAllowed(handler, {
 			toolName: "read",
 			params: { path: "/tmp/readme.md" },
+		});
+	});
+
+	// --- Paranoid mode: ask → deny promotion ---
+
+	describe("paranoid sensitivity", () => {
+		let tmpHome: string;
+		let prevHome: string | undefined;
+
+		beforeAll(async () => {
+			prevHome = process.env.HOME;
+			tmpHome = await mkdtemp(resolve(tmpdir(), "sage-openclaw-paranoid-"));
+			const sageDir = resolve(tmpHome, ".sage");
+			await mkdir(sageDir, { recursive: true });
+			await writeFile(
+				resolve(sageDir, "config.json"),
+				JSON.stringify({ sensitivity: "paranoid" }),
+				"utf8",
+			);
+			process.env.HOME = tmpHome;
+		});
+
+		afterAll(async () => {
+			process.env.HOME = prevHome;
+			await rm(tmpHome, { recursive: true, force: true });
+		});
+
+		it("promotes ask to deny (no sage_approve)", async () => {
+			const result = await expectBlocked(handler, {
+				toolName: "exec",
+				params: { command: "chmod 777 script.sh" },
+			});
+			expect(result.blockReason).toContain("Sage blocked");
+			expect(result.blockReason).not.toContain("sage_approve");
 		});
 	});
 
