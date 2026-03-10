@@ -1,5 +1,6 @@
 # Sage
 
+
 **Safety for Agents** - a lightweight Agent Detection & Response (ADR) layer for AI agents that guards commands, files, and web requests.
 
 <p align="center">
